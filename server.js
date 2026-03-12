@@ -114,7 +114,7 @@ async function startWhatsApp(userId, sessionId) {
                 const phone = sock.user.id.split(':')[0];
                 sessions[sessionId].qr = null;
                 sessions[sessionId]._ready = true;
-                await mysql.query('UPDATE wa_sessions SET status = 'connected', phone_number = ? WHERE session_id = ?', [phone, sessionId]);
+                await mysql.query(`UPDATE wa_sessions SET status = 'connected', phone_number = ? WHERE session_id = ?`, [phone, sessionId]);
                 console.log(`[✓] ${phone} terhubung`);
             }
             if (connection === 'close') {
@@ -274,7 +274,7 @@ app.get('/api/wa/connect', authenticateToken, async (req, res) => {
     let sessionId = req.query.sid;
     if (!sessionId) {
         sessionId = `session_${userId}_${Date.now()}`;
-        await mysql.query('INSERT INTO wa_sessions (user_id, session_id, status, sent_count) VALUES (?, ?, 'connecting', 0)', [userId, sessionId]);
+        await mysql.query(`INSERT INTO wa_sessions (user_id, session_id, status, sent_count) VALUES (?, ?, 'connecting', 0)`, [userId, sessionId]);
         startWhatsApp(userId, sessionId);
     }
     res.json({ sessionId, qr: sessions[sessionId]?.qr || null, status: sessions[sessionId]?.user ? 'connected' : 'connecting' });
@@ -455,7 +455,7 @@ app.post('/api/wa/blast', authenticateToken, async (req, res) => {
             if (tplRows.length === 0) return res.status(400).json({ success: false, message: 'Template tidak ditemukan!' });
             template = tplRows[0];
         }
-        const [activeSessions] = await mysql.query('SELECT session_id FROM wa_sessions WHERE user_id = ? AND status = 'connected' LIMIT 1', [userId]);
+        const [activeSessions] = await mysql.query(`SELECT session_id FROM wa_sessions WHERE user_id = ? AND status = 'connected' LIMIT 1`, [userId]);
         if (activeSessions.length === 0) return res.status(400).json({ success: false, message: 'Hubungkan WhatsApp dulu!' });
         const sessionId = activeSessions[0].session_id;
         const sock = sessions[sessionId];
@@ -818,7 +818,7 @@ app.get('/api/admin/all-sessions', authenticateToken, async (req, res) => {
 
 async function restoreSessions() {
     try {
-        const [rows] = await mysql.query('SELECT user_id, session_id, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE status = 'connected'');
+        const [rows] = await mysql.query(`SELECT user_id, session_id, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE status = 'connected'`');
         console.log(`[System] Memulihkan ${rows.length} sesi...`);
         for (const row of rows) {
             sessionStats[row.session_id] = { sent: Number(row.sent_count), failed: 0 };
