@@ -2,7 +2,7 @@ const mysql = require('../db');
 
 const getUsersOnline = async (req, res) => {
     try {
-        await mysql.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active DATETIME DEFAULT NULL`).catch(() => {});
+        await mysql.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active DATETIME DEFAULT NULL`).catch(() => { });
         const [rows] = await mysql.query(
             'SELECT COUNT(*) as total FROM users WHERE last_active >= NOW() - INTERVAL 15 MINUTE'
         );
@@ -17,8 +17,8 @@ const getUsersOnline = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
     try {
-        await mysql.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS rate INT DEFAULT 800`).catch(() => {});
-        await mysql.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banned TINYINT(1) DEFAULT 0`).catch(() => {});
+        await mysql.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS rate INT DEFAULT 800`).catch(() => { });
+        await mysql.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banned TINYINT(1) DEFAULT 0`).catch(() => { });
         const [rows] = await mysql.query(
             'SELECT id, username, balance, role, COALESCE(banned,0) as banned, COALESCE(rate, 800) as rate FROM users ORDER BY id ASC'
         );
@@ -73,13 +73,30 @@ const resetUserBalance = async (req, res) => {
 
 const getAllSessions = async (req, res) => {
     try {
+        const { sessionStats, sessions } = require('../services/whatsapp.service');
+        const { activeBlasts } = require('./wa.controller');
+
         const [rows] = await mysql.query(`
-            SELECT ws.*, u.username
+            SELECT ws.*, u.username,
+                (SELECT COUNT(*) FROM contacts c WHERE c.user_id = ws.user_id AND c.status = 'sent') as total_sent_db,
+                (SELECT COUNT(*) FROM contacts c WHERE c.status = 'pending') as total_pending_db,
+                (SELECT COUNT(*) FROM contacts c WHERE c.user_id = ws.user_id AND c.status = 'failed') as total_failed_db
             FROM wa_sessions ws
             JOIN users u ON ws.user_id = u.id
             ORDER BY ws.status DESC, ws.id DESC
         `);
-        res.json(rows);
+
+        const enriched = rows.map(s => ({
+            ...s,
+            // Real-time stats dari memory (lebih akurat saat blast berlangsung)
+            realtime_sent: sessionStats[s.session_id]?.sent ?? Number(s.sent_count) ?? 0,
+            realtime_failed: sessionStats[s.session_id]?.failed ?? 0,
+            realtime_pending: s.total_pending_db,
+            is_blasting: activeBlasts.has(s.session_id),
+            is_online: !!sessions[s.session_id]?._ready
+        }));
+
+        res.json(enriched);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

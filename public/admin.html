@@ -629,6 +629,18 @@
             background: #cbd5e1;
             border-radius: 10px
         }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .5
+            }
+        }
     </style>
 </head>
 
@@ -870,16 +882,12 @@
                         <thead>
                             <tr>
                                 <th>Pemilik</th>
-                                <th>Nama Sesi</th>
                                 <th>Nomor WA</th>
-                                <th>Device Activity<br><span
-                                        style="font-weight:400;text-transform:none;letter-spacing:0">(Akumulasi
-                                        Historis)</span></th>
-                                <th>User Database<br><span
-                                        style="font-weight:400;text-transform:none;letter-spacing:0">(Total Akun)</span>
-                                </th>
+                                <th style="text-align:center;color:#10b981">✅ Sent</th>
+                                <th style="text-align:center;color:#f59e0b">⏳ Pending</th>
+                                <th style="text-align:center;color:#ef4444">❌ Failed</th>
+                                <th style="text-align:center">Progress</th>
                                 <th>Status</th>
-                                <th>Terakhir Update</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -995,25 +1003,6 @@
                             </tr>
                         </tbody>
                     </table>
-                    <!-- Pagination -->
-                    <div id="paginationBar"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #f1f5f9;flex-wrap:wrap;gap:8px">
-                        <span id="paginationInfo" style="font-size:12px;color:#64748b"></span>
-                        <div style="display:flex;gap:6px;align-items:center">
-                            <button id="btnPrevPage" onclick="changePage(-1)"
-                                style="padding:4px 12px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px">←
-                                Prev</button>
-                            <span id="paginationPages" style="font-size:12px;color:#334155;font-weight:600"></span>
-                            <button id="btnNextPage" onclick="changePage(1)"
-                                style="padding:4px 12px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px">Next
-                                →</button>
-                        </div>
-                        <select id="pageLimitSelect" onchange="changeLimit()"
-                            style="padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;font-size:12px">
-                            <option value="100">100 / hal</option>
-                            <option value="200">200 / hal</option>
-                        </select>
-                    </div>
                 </div>
             </div>
 
@@ -1470,14 +1459,34 @@
                 if (!sessions.length) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:32px">Tidak ada perangkat terdaftar.</td></tr>`; return; }
                 tbody.innerHTML = sessions.map(s => {
                     const ok = s.status === 'connected';
+                    const sent = s.realtime_sent || s.sent_count || 0;
+                    const pending = s.realtime_pending || 0;
+                    const failed = s.realtime_failed || 0;
+                    const total = sent + pending + failed;
+                    const pct = total > 0 ? Math.round((sent / total) * 100) : 0;
+                    const blasting = s.is_blasting
+                        ? `<span style="display:inline-block;background:#fef9c3;color:#ca8a04;border:1px solid #fde68a;border-radius:6px;font-size:10px;font-weight:700;padding:2px 8px;margin-left:6px;animation:pulse 1s infinite">⚡ BLASTING</span>`
+                        : '';
+                    const statusBadge = ok
+                        ? `<span class="badge badge-green">CONNECTED</span>`
+                        : `<span class="badge badge-red">DISCONNECTED</span>`;
+                    const progressBar = `
+                        <div style="min-width:120px">
+                            <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:3px">
+                                <span>${pct}%</span><span>${sent.toLocaleString('id-ID')} / ${total.toLocaleString('id-ID')}</span>
+                            </div>
+                            <div style="background:#e2e8f0;border-radius:99px;height:6px;overflow:hidden">
+                                <div style="width:${pct}%;background:${pct === 100 ? '#10b981' : '#0ea5e9'};height:100%;border-radius:99px;transition:width .4s"></div>
+                            </div>
+                        </div>`;
                     return `<tr>
-        <td><strong>${esc(s.username || s.user_id)}</strong></td>
-        <td style="font-size:11px;color:#64748b;font-family:monospace">${esc(s.session_id || '').substring(0, 20)}...</td>
-        <td><strong>${esc(s.phone_number || '—')}</strong></td>
-        <td style="text-align:center">${s.sent_count || 0}</td>
-        <td style="text-align:center">—</td>
-        <td><span class="badge ${ok ? 'badge-green' : 'badge-red'}">${ok ? 'CONNECTED' : 'DISCONNECTED'}</span></td>
-        <td style="font-size:11px;color:#94a3b8">${s.updated_at ? new Date(s.updated_at).toLocaleString('id-ID') : '—'}</td>
+        <td><strong>${esc(s.username || s.user_id)}</strong>${blasting}</td>
+        <td><strong>${esc(s.phone_number || '—')}</strong><br><span style="font-size:10px;color:#94a3b8;font-family:monospace">${esc(s.session_id || '').substring(0, 18)}...</span></td>
+        <td style="text-align:center;font-weight:700;color:#10b981;font-size:15px">${sent.toLocaleString('id-ID')}</td>
+        <td style="text-align:center;font-weight:700;color:#f59e0b;font-size:15px">${pending.toLocaleString('id-ID')}</td>
+        <td style="text-align:center;font-weight:700;color:#ef4444;font-size:15px">${failed.toLocaleString('id-ID')}</td>
+        <td>${progressBar}</td>
+        <td>${statusBadge}</td>
         <td><button class="btn btn-sm btn-danger" onclick="kickDevice('${esc(s.session_id)}')"><i class="fas fa-plug"></i> Putus</button></td>
       </tr>`;
                 }).join('');
@@ -1490,6 +1499,12 @@
             await fetch('/api/wa/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sessionId: sid }) });
             loadDevices();
         }
+
+        // Auto-refresh device monitoring setiap 5 detik kalau halaman devices aktif
+        setInterval(() => {
+            const devPage = document.getElementById('page-devices');
+            if (devPage && devPage.classList.contains('active')) loadDevices();
+        }, 5000);
 
         // ── TEMPLATES ────────────────────────────────
         async function loadTemplates() {
@@ -1634,15 +1649,8 @@
 
         // ── CONTACTS ─────────────────────────────────
         let currentStatus = 'pending';
-        let currentPage = 1;
-        let currentLimit = 100;
-        let totalPages = 1;
-
-        async function loadContacts(status = 'pending', page = 1) {
-            if (status !== currentStatus) { page = 1; currentPage = 1; }
+        async function loadContacts(status = 'pending') {
             currentStatus = status;
-            currentPage = page;
-            const limit = currentLimit;
             const tbody = document.getElementById('contactsBody');
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px"><i class="fas fa-spinner fa-spin"></i></td></tr>`;
             document.getElementById('btnPending').style.background = status === 'pending' ? '#0ea5e9' : '#f1f5f9';
@@ -1650,21 +1658,9 @@
             document.getElementById('btnSent').style.background = status === 'sent' ? '#0ea5e9' : '#f1f5f9';
             document.getElementById('btnSent').style.color = status === 'sent' ? '#fff' : '#64748b';
             try {
-                const r = await fetch(`/api/contacts?status=${status}&page=${page}&limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } });
-                const res = await r.json();
-                const data = res.data || [];
-                totalPages = res.totalPages || 1;
-                const total = res.total || 0;
-
-                // Update info
-                document.getElementById('contactCount').innerText = `${total.toLocaleString('id-ID')} kontak`;
-                const start = (page - 1) * limit + 1;
-                const end = Math.min(page * limit, total);
-                document.getElementById('paginationInfo').innerText = total > 0 ? `Menampilkan ${start.toLocaleString('id-ID')}–${end.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')}` : '';
-                document.getElementById('paginationPages').innerText = `Hal ${page} / ${totalPages}`;
-                document.getElementById('btnPrevPage').disabled = page <= 1;
-                document.getElementById('btnNextPage').disabled = page >= totalPages;
-
+                const r = await fetch(`/api/contacts?status=${status}`, { headers: { Authorization: `Bearer ${token}` } });
+                const data = await r.json();
+                document.getElementById('contactCount').innerText = `${data.length} kontak`;
                 if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px">Tidak ada kontak ${status}.</td></tr>`; return; }
                 const isSent = status === 'sent';
                 tbody.innerHTML = data.map(c => {
@@ -1680,16 +1676,6 @@
             } catch (e) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:32px">Gagal memuat.</td></tr>`; }
         }
 
-        function changePage(dir) {
-            const next = currentPage + dir;
-            if (next < 1 || next > totalPages) return;
-            loadContacts(currentStatus, next);
-        }
-        function changeLimit() {
-            currentLimit = parseInt(document.getElementById('pageLimitSelect').value) || 100;
-            loadContacts(currentStatus, 1);
-        }
-
         function updateBulkBtn() {
             const n = document.querySelectorAll('.cb-contact:checked').length;
             const btn = document.getElementById('btnBulkDelete');
@@ -1698,7 +1684,7 @@
         }
         function toggleSelectAll() { const m = document.getElementById('selectAll'); document.querySelectorAll('.cb-contact:not([disabled])').forEach(c => c.checked = m.checked); updateBulkBtn(); }
         async function deleteSelected() {
-            const ids = Array.from(document.querySelectorAll('.cb-contact:checked')).map(c => parseInt(c.value));
+            const ids = Array.from(document.querySelectorAll('.cb-contact:checked')).map(c => c.value);
             const { isConfirmed } = await Swal.fire({ title: `Hapus ${ids.length} kontak?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus!' });
             if (!isConfirmed) return;
             await fetch('/api/contacts/delete-multiple', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ ids }) });
@@ -1724,26 +1710,15 @@
             if (!raw) return Swal.fire('Error', 'Data kosong!', 'error');
             const contacts = raw.split('\n').map(l => { const [n, p] = l.split(','); return { name: n?.trim(), phone: p?.trim() }; }).filter(c => c.name && c.phone);
             if (!contacts.length) return Swal.fire('Error', 'Format salah. Gunakan: Nama,Nomor', 'error');
-            Swal.fire({ title: `Mengimpor ${contacts.length} kontak...`, html: 'Mohon tunggu...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
-            const BATCH = 1000;
-            let imported = 0;
-            for (let i = 0; i < contacts.length; i += BATCH) {
-                const chunk = contacts.slice(i, i + BATCH);
-                const batchNum = Math.floor(i / BATCH) + 1;
-                const totalBatch = Math.ceil(contacts.length / BATCH);
-                Swal.update({ html: `Batch ${batchNum}/${totalBatch} (${imported}/${contacts.length} kontak)...` });
-                const r = await fetch('/api/contacts/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ contacts: chunk }) });
-                if (!r.ok) { Swal.fire('Gagal', `Terjadi kesalahan di batch ke-${batchNum}.`, 'error'); return; }
-                imported += chunk.length;
-            }
-            document.getElementById('bulkText').value = '';
-            Swal.fire('Berhasil!', `${imported} kontak berhasil diimport.`, 'success');
-            loadContacts('pending');
+            Swal.fire({ title: `Mengimpor ${contacts.length} kontak...`, didOpen: () => Swal.showLoading() });
+            const r = await fetch('/api/contacts/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ contacts }) });
+            if (r.ok) { document.getElementById('bulkText').value = ''; Swal.fire('Berhasil!', `${contacts.length} kontak diimport.`, 'success'); loadContacts('pending'); }
+            else Swal.fire('Gagal', 'Terjadi kesalahan.', 'error');
         }
         async function clearAllPending() {
             const { isConfirmed } = await Swal.fire({ title: 'Hapus semua pending?', text: 'Kontak yang sudah di-blast tetap aman.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus Semua!' });
             if (!isConfirmed) return;
-            await fetch('/api/contacts/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            await fetch('/api/contacts-all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
             Swal.fire({ icon: 'success', title: 'Bersih!', timer: 1500, showConfirmButton: false });
             loadContacts('pending');
         }
