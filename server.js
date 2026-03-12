@@ -114,7 +114,7 @@ async function startWhatsApp(userId, sessionId) {
                 const phone = sock.user.id.split(':')[0];
                 sessions[sessionId].qr = null;
                 sessions[sessionId]._ready = true;
-                await mysql.query(`UPDATE wa_sessions SET status = 'connected', phone_number = ? WHERE session_id = ?`, [phone, sessionId]);
+                await mysql.query('UPDATE wa_sessions SET status = 'connected', phone_number = ? WHERE session_id = ?', [phone, sessionId]);
                 console.log(`[✓] ${phone} terhubung`);
             }
             if (connection === 'close') {
@@ -246,7 +246,7 @@ app.post('/api/auth/register', async (req, res) => {
         const [existing] = await mysql.query('SELECT id FROM users WHERE username = ?', [username]);
         if (existing.length > 0) return res.status(400).json({ success: false, message: 'Username sudah dipakai!' });
         const hash = await bcrypt.hash(password, 10);
-        await mysql.query('INSERT INTO users (username, password, balance, role) VALUES (?, ?, 0, "user")', [username, hash]);
+        await mysql.query('INSERT INTO users (username, password, balance, role) VALUES (?, ?, 0, 'user')', [username, hash]);
         res.json({ success: true, message: 'Berhasil daftar!' });
     } catch (err) { res.status(500).json({ success: false, message: 'Error: ' + err.code }); }
 });
@@ -274,7 +274,7 @@ app.get('/api/wa/connect', authenticateToken, async (req, res) => {
     let sessionId = req.query.sid;
     if (!sessionId) {
         sessionId = `session_${userId}_${Date.now()}`;
-        await mysql.query(`INSERT INTO wa_sessions (user_id, session_id, status, sent_count) VALUES (?, ?, 'connecting', 0)`, [userId, sessionId]);
+        await mysql.query('INSERT INTO wa_sessions (user_id, session_id, status, sent_count) VALUES (?, ?, 'connecting', 0)', [userId, sessionId]);
         startWhatsApp(userId, sessionId);
     }
     res.json({ sessionId, qr: sessions[sessionId]?.qr || null, status: sessions[sessionId]?.user ? 'connected' : 'connecting' });
@@ -284,8 +284,8 @@ app.get('/api/wa/status', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
         // DB pending & sent dari pool global (semua kontak)
-        const [pendingRows] = await mysql.query('SELECT COUNT(*) as total FROM contacts WHERE status = "pending"');
-        const [sentContactRows] = await mysql.query('SELECT COUNT(*) as total FROM contacts WHERE status = "sent"');
+        const [pendingRows] = await mysql.query('SELECT COUNT(*) as total FROM contacts WHERE status = 'pending'');
+        const [sentContactRows] = await mysql.query('SELECT COUNT(*) as total FROM contacts WHERE status = 'sent'');
         const [sessionRows] = await mysql.query('SELECT session_id, phone_number, status, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE user_id = ?', [userId]);
         const connectedCount = sessionRows.filter(s => s.status === 'connected').length;
         const sessionsWithStats = sessionRows.map(s => ({ ...s, sent_count: sessionStats[s.session_id]?.sent ?? Number(s.sent_count) ?? 0 }));
@@ -314,7 +314,7 @@ app.post('/api/wa/logout', authenticateToken, async (req, res) => {
 app.post('/api/contacts', authenticateToken, async (req, res) => {
     const { name, phone } = req.body;
     try {
-        await mysql.query('INSERT INTO contacts (user_id, name, phone, role, status) VALUES (?, ?, ?, ?, "pending")', [req.user.id, name, phone, req.user.role]);
+        await mysql.query('INSERT INTO contacts (user_id, name, phone, role, status) VALUES (?, ?, ?, ?, 'pending')', [req.user.id, name, phone, req.user.role]);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ success: false, message: 'Gagal simpan' }); }
 });
@@ -344,9 +344,9 @@ app.post('/api/contacts/delete-multiple', authenticateToken, async (req, res) =>
         if (!ids || ids.length === 0) return res.status(400).json({ message: 'Tidak ada ID' });
         // Hanya admin yang bisa hapus kontak, atau hapus kontak milik sendiri
         if (req.user.role === 'admin') {
-            await mysql.query('DELETE FROM contacts WHERE id IN (?) AND status = "pending"', [ids]);
+            await mysql.query('DELETE FROM contacts WHERE id IN (?) AND status = 'pending'', [ids]);
         } else {
-            await mysql.query('DELETE FROM contacts WHERE id IN (?) AND user_id = ? AND status = "pending"', [ids, req.user.id]);
+            await mysql.query('DELETE FROM contacts WHERE id IN (?) AND user_id = ? AND status = 'pending'', [ids, req.user.id]);
         }
         res.json({ success: true });
     } catch (err) { res.status(500).json({ success: false }); }
@@ -356,9 +356,9 @@ app.delete('/api/contacts-all', authenticateToken, async (req, res) => {
     try {
         if (req.user.role === 'admin') {
             // Admin hapus semua kontak pending (global)
-            await mysql.query('DELETE FROM contacts WHERE status = "pending"');
+            await mysql.query('DELETE FROM contacts WHERE status = 'pending'');
         } else {
-            await mysql.query('DELETE FROM contacts WHERE user_id = ? AND status = "pending"', [req.user.id]);
+            await mysql.query('DELETE FROM contacts WHERE user_id = ? AND status = 'pending'', [req.user.id]);
         }
         res.json({ success: true });
     } catch (err) { res.status(500).json({ success: false }); }
@@ -373,7 +373,7 @@ app.delete('/api/contacts/:id', authenticateToken, async (req, res) => {
         if (req.user.role !== 'admin' && rows[0].user_id !== req.user.id) {
             return res.status(403).json({ success: false, message: 'Tidak diizinkan!' });
         }
-        await mysql.query('DELETE FROM contacts WHERE id = ? AND status = "pending"', [req.params.id]);
+        await mysql.query('DELETE FROM contacts WHERE id = ? AND status = 'pending'', [req.params.id]);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
@@ -455,7 +455,7 @@ app.post('/api/wa/blast', authenticateToken, async (req, res) => {
             if (tplRows.length === 0) return res.status(400).json({ success: false, message: 'Template tidak ditemukan!' });
             template = tplRows[0];
         }
-        const [activeSessions] = await mysql.query(`SELECT session_id FROM wa_sessions WHERE user_id = ? AND status = 'connected' LIMIT 1`, [userId]);
+        const [activeSessions] = await mysql.query('SELECT session_id FROM wa_sessions WHERE user_id = ? AND status = 'connected' LIMIT 1', [userId]);
         if (activeSessions.length === 0) return res.status(400).json({ success: false, message: 'Hubungkan WhatsApp dulu!' });
         const sessionId = activeSessions[0].session_id;
         const sock = sessions[sessionId];
@@ -472,7 +472,7 @@ app.post('/api/wa/blast', authenticateToken, async (req, res) => {
         }
         // Ambil semua kontak pending dari pool global — limit diterapkan di loop
         const [contacts] = await mysql.query(
-            'SELECT id, phone, name FROM contacts WHERE status = "pending" ORDER BY id ASC'
+            'SELECT id, phone, name FROM contacts WHERE status = 'pending' ORDER BY id ASC'
         );
         if (contacts.length === 0) return res.status(400).json({ success: false, message: 'Tidak ada kontak pending!' });
 
@@ -506,7 +506,7 @@ app.post('/api/wa/blast', authenticateToken, async (req, res) => {
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 45000))
                 ]);
                 console.log(`[✓] → ${target} (${contact.name})`);
-                await mysql.query('UPDATE contacts SET status = "sent", sent_at = NOW() WHERE id = ?', [contact.id]);
+                await mysql.query('UPDATE contacts SET status = 'sent', sent_at = NOW() WHERE id = ?', [contact.id]);
                 sessionStats[sessionId].sent += 1;
                 sentCount += 1;
                 await mysql.query('UPDATE wa_sessions SET sent_count = sent_count + 1 WHERE session_id = ?', [sessionId]);
@@ -515,7 +515,7 @@ app.post('/api/wa/blast', authenticateToken, async (req, res) => {
                 console.error(`[✗] ${contact.phone}: ${err.message}`);
                 sessionStats[sessionId].failed += 1;
                 const isInvalid = err.message?.includes('not-authorized') || err.message?.includes('bad jid') || err.message?.includes('not on whatsapp');
-                if (isInvalid) await mysql.query('UPDATE contacts SET status = "failed" WHERE id = ?', [contact.id]);
+                if (isInvalid) await mysql.query('UPDATE contacts SET status = 'failed' WHERE id = ?', [contact.id]);
             }
             await new Promise(r => setTimeout(r, parseInt(delay) || 3000));
         }
@@ -545,7 +545,7 @@ app.post('/api/withdrawal/request', authenticateToken, async (req, res) => {
 
         // Cek apakah ada withdrawal pending
         const [pendingRows] = await mysql.query(
-            'SELECT id FROM withdrawals WHERE user_id = ? AND status = "pending"', [userId]
+            'SELECT id FROM withdrawals WHERE user_id = ? AND status = 'pending'', [userId]
         );
         if (pendingRows.length > 0)
             return res.status(400).json({ success: false, message: 'Kamu masih punya withdrawal yang belum diproses!' });
@@ -647,7 +647,7 @@ app.post('/api/admin/withdrawals/:id/approve', authenticateToken, async (req, re
         if (!rows[0]) return res.status(404).json({ success: false, message: 'Tidak ditemukan' });
         if (rows[0].status !== 'pending') return res.status(400).json({ success: false, message: 'Sudah diproses!' });
         await mysql.query(
-            'UPDATE withdrawals SET status = "approved", admin_note = ? WHERE id = ?',
+            'UPDATE withdrawals SET status = 'approved', admin_note = ? WHERE id = ?',
             [admin_note || null, req.params.id]
         );
         res.json({ success: true, message: 'Withdrawal disetujui!' });
@@ -665,7 +665,7 @@ app.post('/api/admin/withdrawals/:id/reject', authenticateToken, async (req, res
         // Kembalikan saldo
         await mysql.query('UPDATE users SET balance = balance + ? WHERE id = ?', [rows[0].amount, rows[0].user_id]);
         await mysql.query(
-            'UPDATE withdrawals SET status = "rejected", admin_note = ? WHERE id = ?',
+            'UPDATE withdrawals SET status = 'rejected', admin_note = ? WHERE id = ?',
             [admin_note || null, req.params.id]
         );
         res.json({ success: true, message: 'Withdrawal ditolak & saldo dikembalikan!' });
@@ -676,9 +676,9 @@ app.post('/api/admin/withdrawals/:id/reject', authenticateToken, async (req, res
 app.get('/api/admin/withdrawals/stats', authenticateToken, async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
     try {
-        const [pending] = await mysql.query('SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM withdrawals WHERE status="pending"');
-        const [approved] = await mysql.query('SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM withdrawals WHERE status="approved"');
-        const [rejected] = await mysql.query('SELECT COUNT(*) as c FROM withdrawals WHERE status="rejected"');
+        const [pending] = await mysql.query('SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM withdrawals WHERE status='pending'');
+        const [approved] = await mysql.query('SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as total FROM withdrawals WHERE status='approved'');
+        const [rejected] = await mysql.query('SELECT COUNT(*) as c FROM withdrawals WHERE status='rejected'');
         res.json({
             pending: { count: pending[0].c, total: pending[0].total },
             approved: { count: approved[0].c, total: approved[0].total },
@@ -818,7 +818,7 @@ app.get('/api/admin/all-sessions', authenticateToken, async (req, res) => {
 
 async function restoreSessions() {
     try {
-        const [rows] = await mysql.query(`SELECT user_id, session_id, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE status = 'connected'`);
+        const [rows] = await mysql.query('SELECT user_id, session_id, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE status = 'connected'');
         console.log(`[System] Memulihkan ${rows.length} sesi...`);
         for (const row of rows) {
             sessionStats[row.session_id] = { sent: Number(row.sent_count), failed: 0 };
