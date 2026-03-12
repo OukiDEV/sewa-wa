@@ -700,16 +700,16 @@ async function initSettingsTable() {
             updated_at DATETIME DEFAULT NOW() ON UPDATE NOW()
         )
     `);
-    await mysql.query(`INSERT IGNORE INTO global_settings (\`key\`, \`value\`) VALUES ('min_withdraw', '10000')`);
-    await mysql.query(`INSERT IGNORE INTO global_settings (\`key\`, \`value\`) VALUES ('price_per_msg', '800')`);
-    await mysql.query(`INSERT IGNORE INTO global_settings (\`key\`, \`value\`) VALUES ('wa_support', '')`);
-    await mysql.query(`INSERT IGNORE INTO global_settings (\`key\`, \`value\`) VALUES ('maintenance_mode', '0')`);
+    await mysql.query("INSERT IGNORE INTO global_settings (`key`, `value`) VALUES ('min_withdraw', '10000')");
+    await mysql.query("INSERT IGNORE INTO global_settings (`key`, `value`) VALUES ('price_per_msg', '800')");
+    await mysql.query("INSERT IGNORE INTO global_settings (`key`, `value`) VALUES ('wa_support', '')");
+    await mysql.query("INSERT IGNORE INTO global_settings (`key`, `value`) VALUES ('maintenance_mode', '0')");
 }
 initSettingsTable().catch(console.error);
 
 async function getSetting(key, defaultVal = null) {
     try {
-        const [rows] = await mysql.query(`SELECT `value` FROM global_settings WHERE `key` = ?`, [key]);
+        const [rows] = await mysql.query("SELECT `value` FROM global_settings WHERE `key` = ?", [key]);
         return rows[0] ? rows[0].value : defaultVal;
     } catch { return defaultVal; }
 }
@@ -717,7 +717,7 @@ async function getSetting(key, defaultVal = null) {
 app.get('/api/admin/settings', authenticateToken, async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
     try {
-        const [rows] = await mysql.query(`SELECT `key`, `value` FROM global_settings`);
+        const [rows] = await mysql.query("SELECT `key`, `value` FROM global_settings");
         const result = {};
         rows.forEach(r => result[r.key] = r.value);
         res.json(result);
