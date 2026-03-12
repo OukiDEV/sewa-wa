@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar - Sewa Badak</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --green: #00C853;
+            --green-dark: #00A846;
+            --green-glow: rgba(0, 200, 83, 0.3);
+            --bg: #0A0F0A;
+            --surface: #111811;
+            --surface2: #182018;
+            --border: rgba(0, 200, 83, 0.15);
+            --text: #E8F5E9;
+            --muted: #6B7C6B;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 200, 83, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 200, 83, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 200, 83, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 0 60px rgba(0, 200, 83, 0.05), 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--green), var(--green-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 20px var(--green-glow);
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            color: var(--green);
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text);
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px var(--green-glow);
+        }
+
+        input::placeholder {
+            color: var(--muted);
+        }
+
+        .password-hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--green), var(--green-dark));
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 20px var(--green-glow);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 25px var(--green-glow);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto;
+        }
+
+        .btn.loading .btn-text {
+            display: none;
+        }
+
+        .btn.loading .spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .login-link {
+            text-align: center;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .login-link a {
+            color: var(--green);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #FCA5A5;
+            animation: shake 0.4s ease;
+        }
+
+        .alert.success {
+            background: rgba(0, 200, 83, 0.1);
+            border: 1px solid rgba(0, 200, 83, 0.3);
+            color: #6EE7A0;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-6px);
+            }
+
+            40% {
+                transform: translateX(6px);
+            }
+
+            60% {
+                transform: translateX(-4px);
+            }
+
+            80% {
+                transform: translateX(4px);
+            }
+        }
+
+        .strength-bar {
+            height: 3px;
+            border-radius: 2px;
+            background: var(--surface2);
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: all 0.3s;
+            width: 0%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-bg"></div>
+    <div class="card">
+        <div class="logo">
+            <div class="logo-icon">🦏</div>
+            <div class="logo-text">Sewa <span>Badak</span></div>
+        </div>
+
+        <h1>Buat Akun Baru</h1>
+        <p class="subtitle">Daftar dan mulai hasilkan uang dari blast WA</p>
+
+        <div class="alert" id="alertMsg"></div>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="user" placeholder="Buat username unik" autocomplete="username"
+                oninput="checkUsername(this.value)">
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="pass" placeholder="Minimal 6 karakter" autocomplete="new-password"
+                oninput="checkStrength(this.value)">
+            <div class="strength-bar">
+                <div class="strength-fill" id="strengthFill"></div>
+            </div>
+            <div class="password-hint" id="strengthText"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Konfirmasi Password</label>
+            <input type="password" id="passConfirm" placeholder="Ulangi password"
+                onkeydown="if(event.key==='Enter') daftar()">
+        </div>
+
+        <button class="btn" onclick="daftar()" id="registerBtn">
+            <span class="btn-text">Daftar Sekarang</span>
+            <div class="spinner"></div>
+        </button>
+
+        <div class="divider"><span>sudah punya akun?</span></div>
+
+        <div class="login-link">
+            <a href="login.html">Masuk ke akun saya</a>
+        </div>
+    </div>
+
+    <script>
+        function checkStrength(val) {
+            const fill = document.getElementById('strengthFill');
+            const text = document.getElementById('strengthText');
+            if (!val) { fill.style.width = '0%'; text.textContent = ''; return; }
+            if (val.length < 4) {
+                fill.style.width = '25%'; fill.style.background = '#ef4444';
+                text.textContent = 'Terlalu lemah'; text.style.color = '#ef4444';
+            } else if (val.length < 6) {
+                fill.style.width = '50%'; fill.style.background = '#f59e0b';
+                text.textContent = 'Cukup'; text.style.color = '#f59e0b';
+            } else if (val.length < 10) {
+                fill.style.width = '75%'; fill.style.background = '#00C853';
+                text.textContent = 'Kuat'; text.style.color = '#00C853';
+            } else {
+                fill.style.width = '100%'; fill.style.background = '#00C853';
+                text.textContent = 'Sangat kuat ✓'; text.style.color = '#00C853';
+            }
+        }
+
+        function showAlert(msg, type = 'error') {
+            const el = document.getElementById('alertMsg');
+            el.textContent = msg;
+            el.className = `alert ${type} show`;
+        }
+
+        async function daftar() {
+            const btn = document.getElementById('registerBtn');
+            const username = document.getElementById('user').value.trim();
+            const password = document.getElementById('pass').value;
+            const passConfirm = document.getElementById('passConfirm').value;
+
+            if (!username || !password) { showAlert('Semua field wajib diisi.'); return; }
+            if (username.length < 3) { showAlert('Username minimal 3 karakter.'); return; }
+            if (password.length < 6) { showAlert('Password minimal 6 karakter.'); return; }
+            if (password !== passConfirm) { showAlert('Password dan konfirmasi tidak cocok.'); return; }
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+            document.getElementById('alertMsg').classList.remove('show');
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showAlert('Akun berhasil dibuat! Mengalihkan ke halaman login...', 'success');
+                    setTimeout(() => window.location.href = 'login.html', 1500);
+                } else {
+                    showAlert(data.message || 'Pendaftaran gagal.');
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                showAlert('Koneksi gagal. Pastikan server berjalan.');
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

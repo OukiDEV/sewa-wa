@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Super — SEWA BADAK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden
+        }
+
+        /* ── SIDEBAR ── */
+        #sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: auto
+        }
+
+        .sidebar-brand {
+            padding: 22px 20px 16px;
+            border-bottom: 1px solid #1e293b
+        }
+
+        .sidebar-brand h1 {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 800;
+            margin: 0
+        }
+
+        .sidebar-brand p {
+            color: #64748b;
+            font-size: 11px;
+            margin: 2px 0 0
+        }
+
+        .nav-section {
+            padding: 16px 12px 4px;
+            color: #475569;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            margin: 1px 8px;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+            border: none;
+            background: none;
+            width: calc(100% - 16px);
+            text-align: left
+        }
+
+        .nav-item:hover {
+            background: #1e293b;
+            color: #e2e8f0
+        }
+
+        .nav-item.active {
+            background: #0ea5e9;
+            color: #fff
+        }
+
+        .nav-item i {
+            width: 16px;
+            text-align: center;
+            font-size: 13px
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: #ef4444;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center
+        }
+
+        .sidebar-user {
+            margin-top: auto;
+            padding: 14px 16px;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #0ea5e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 13px;
+            flex-shrink: 0
+        }
+
+        .sidebar-user-info {
+            flex: 1;
+            min-width: 0
+        }
+
+        .sidebar-user-info p {
+            color: #e2e8f0;
+            font-size: 13px;
+            font-weight: 700;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .sidebar-user-info span {
+            color: #64748b;
+            font-size: 10px
+        }
+
+        .btn-logout {
+            color: #475569;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: .15s
+        }
+
+        .btn-logout:hover {
+            color: #ef4444;
+            background: #1e293b
+        }
+
+        /* ── MAIN ── */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        #topbar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 28px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0
+        }
+
+        #topbar-title {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500
+        }
+
+        .mode-badge {
+            background: #dcfce7;
+            color: #16a34a;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px
+        }
+
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px
+        }
+
+        /* ── PAGES ── */
+        .page {
+            display: none
+        }
+
+        .page.active {
+            display: block
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06)
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            position: relative;
+            overflow: hidden
+        }
+
+        .stat-card .accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            border-radius: 0
+        }
+
+        /* ── TABLE ── */
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            padding: 10px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+            color: #1e293b;
+            vertical-align: middle
+        }
+
+        tr:last-child td {
+            border-bottom: none
+        }
+
+        tr:hover td {
+            background: #f8fafc
+        }
+
+        /* ── BADGES ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        .badge-green {
+            background: #dcfce7;
+            color: #16a34a
+        }
+
+        .badge-red {
+            background: #fee2e2;
+            color: #dc2626
+        }
+
+        .badge-amber {
+            background: #fef3c7;
+            color: #d97706
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #2563eb
+        }
+
+        .badge-gray {
+            background: #f1f5f9;
+            color: #64748b
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: .15s;
+            border: none
+        }
+
+        .btn-primary {
+            background: #0ea5e9;
+            color: #fff
+        }
+
+        .btn-primary:hover {
+            background: #0284c7
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca
+        }
+
+        .btn-danger:hover {
+            background: #fecaca
+        }
+
+        .btn-success {
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0
+        }
+
+        .btn-success:hover {
+            background: #bbf7d0
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 11px
+        }
+
+        .btn-solid-green {
+            background: #16a34a;
+            color: #fff
+        }
+
+        .btn-solid-green:hover {
+            background: #15803d
+        }
+
+        /* ── INPUTS ── */
+        input[type=text],
+        input[type=number],
+        input[type=email],
+        input[type=password],
+        input[type=url],
+        select,
+        textarea {
+            width: 100%;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: .15s;
+            background: #fff;
+            color: #1e293b
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, .12)
+        }
+
+        /* ── GRADIENT STATS ── */
+        .gstat {
+            border-radius: 14px;
+            padding: 20px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: .2s
+        }
+
+        .gstat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .15)
+        }
+
+        .gstat .circle {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .15)
+        }
+
+        .gstat-amber {
+            background: linear-gradient(135deg, #f59e0b, #d97706)
+        }
+
+        .gstat-green {
+            background: linear-gradient(135deg, #10b981, #059669)
+        }
+
+        .gstat-red {
+            background: linear-gradient(135deg, #ef4444, #dc2626)
+        }
+
+        .gstat-blue {
+            background: linear-gradient(135deg, #3b82f6, #2563eb)
+        }
+
+        .gstat-purple {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed)
+        }
+
+        /* ── WD CARDS ── */
+        .wd-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px;
+            transition: .2s
+        }
+
+        .wd-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .08)
+        }
+
+        .wd-card .left-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 12px 0 0 12px
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .5);
+            z-index: 100;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px;
+            overflow-y: auto
+        }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 680px;
+            margin: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .2)
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .modal-body {
+            padding: 24px
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px
+        }
+
+        /* WA Preview */
+        .wa-bg {
+            background: #e5ddd5;
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 120px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end
+        }
+
+        .wa-bubble {
+            background: #fff;
+            border-radius: 12px 0 12px 12px;
+            padding: 10px 12px;
+            max-width: 85%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+            font-size: 13px;
+            position: relative
+        }
+
+        .wa-bubble img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: block
+        }
+
+        .wa-time {
+            text-align: right;
+            font-size: 10px;
+            color: #999;
+            margin-top: 6px
+        }
+
+        .wa-btn {
+            margin-top: 4px;
+            padding: 7px 12px;
+            background: rgba(0, 165, 244, .1);
+            border-top: 1px solid #e8e8e8;
+            text-align: center;
+            color: #00a5f4;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 0 0 8px 8px;
+            cursor: pointer
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0
+        }
+
+        .page-sub {
+            color: #64748b;
+            font-size: 13px;
+            margin: 4px 0 0
+        }
+
+        /* toggle */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #cbd5e1;
+            border-radius: 24px;
+            transition: .3s
+        }
+
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: .3s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .2)
+        }
+
+        .toggle input:checked+.toggle-slider {
+            background: #0ea5e9
+        }
+
+        .toggle input:checked+.toggle-slider:before {
+            transform: translateX(20px)
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══════════════════════════════════ SIDEBAR ═══════════════════════════════════ -->
+    <div id="sidebar">
+        <div class="sidebar-brand">
+            <h1>Admin Super</h1>
+            <p id="appNameSmall">SEWA BADAK</p>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding-bottom:8px">
+            <div class="nav-section">Menu Utama</div>
+            <button class="nav-item active" onclick="goPage('ringkasan')" id="nav-ringkasan">
+                <i class="fas fa-th-large"></i> Ringkasan
+            </button>
+            <button class="nav-item" onclick="goPage('users')" id="nav-users">
+                <i class="fas fa-users"></i> Manajemen User
+            </button>
+            <button class="nav-item" onclick="goPage('devices')" id="nav-devices">
+                <i class="fas fa-mobile-alt"></i> Server &amp; Device
+            </button>
+            <button class="nav-item" onclick="goPage('templates')" id="nav-templates">
+                <i class="fas fa-file-alt"></i> Message Templates
+            </button>
+            <button class="nav-item" onclick="goPage('contacts')" id="nav-contacts">
+                <i class="fas fa-database"></i> Database Kontak
+            </button>
+            <div class="nav-section">Keuangan</div>
+            <button class="nav-item" onclick="goPage('keuangan')" id="nav-keuangan">
+                <i class="fas fa-coins"></i> Keuangan
+                <span class="nav-badge hidden" id="wdBadge">0</span>
+            </button>
+            <div class="nav-section">Sistem</div>
+            <button class="nav-item" onclick="goPage('settings')" id="nav-settings">
+                <i class="fas fa-cog"></i> Pengaturan Global
+            </button>
+        </div>
+        <div class="sidebar-user">
+            <div class="avatar" id="avatarChar">A</div>
+            <div class="sidebar-user-info">
+                <p id="sidebarUser">Admin</p>
+                <span>Super Admin</span>
+            </div>
+            <div class="btn-logout" onclick="logout()" title="Logout"><i class="fas fa-sign-out-alt"></i></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════ MAIN ═══════════════════════════════════ -->
+    <div id="main">
+        <div id="topbar">
+            <span id="topbar-title">Selamat datang kembali, Admin!</span>
+            <span class="mode-badge">Mode Operasional: <strong>Normal</strong></span>
+        </div>
+        <div id="content">
+
+            <!-- ══════════════ PAGE: RINGKASAN ══════════════ -->
+            <div class="page active" id="page-ringkasan">
+                <div class="page-header">
+                    <div>
+                        <p class="page-title">👋 Halo, Admin!</p>
+                        <p class="page-sub">Berikut ringkasan sistem Anda hari ini.</p>
+                        <p style="color:#94a3b8;font-size:12px;margin:4px 0 0" id="todayDate"></p>
+                    </div>
+                </div>
+
+                <p
+                    style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 12px;display:flex;align-items:center;gap:8px">
+                    <i class="fas fa-chart-bar" style="color:#0ea5e9"></i> Ringkasan Sistem
+                </p>
+                <div
+                    style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px">
+                    <div class="stat-card">
+                        <div class="accent" style="background:#0ea5e9"></div>
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px 8px">
+                            User Online</p>
+                        <p id="r_userOnline" style="font-size:32px;font-weight:800;color:#0f172a;margin:0 0 4px 8px">0
+                        </p>
+                        <p style="color:#94a3b8;font-size:11px;margin:0 0 4px 8px"><i class="fas fa-user-check"></i>
+                            Aktif
+                            15 menit terakhir</p>
+                        <div id="r_userOnlineDetail"
+                            style="margin:4px 8px 0;padding-top:4px;border-top:1px solid #f1f5f9"></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="accent" style="background:#10b981"></div>
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px 8px">
+                            Perangkat</p>
+                        <p id="r_devices" style="font-size:32px;font-weight:800;color:#0f172a;margin:0 0 4px 8px">0<span
+                                style="font-size:18px;color:#94a3b8"> /0</span></p>
+                        <div style="background:#e2e8f0;border-radius:4px;height:4px;margin:4px 8px">
+                            <div id="r_deviceBar" style="background:#10b981;height:4px;border-radius:4px;width:0%">
+                            </div>
+                        </div>
+                        <p id="r_devicePct" style="color:#94a3b8;font-size:11px;margin:4px 0 0 8px">0% terhubung</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="accent" style="background:#8b5cf6"></div>
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px 8px">
+                            Success Rate</p>
+                        <p id="r_successRate" style="font-size:32px;font-weight:800;color:#0f172a;margin:0 0 4px 8px">0%
+                        </p>
+                        <div style="background:#e2e8f0;border-radius:4px;height:4px;margin:4px 8px">
+                            <div id="r_successBar" style="background:#8b5cf6;height:4px;border-radius:4px;width:0%">
+                            </div>
+                        </div>
+                        <p style="color:#94a3b8;font-size:11px;margin:4px 0 0 8px">Tingkat keberhasilan kirim</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="accent" style="background:#f59e0b"></div>
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px 8px">
+                            Pesan Hari Ini</p>
+                        <p id="r_msgToday" style="font-size:32px;font-weight:800;color:#0f172a;margin:0 0 4px 8px">0</p>
+                        <p style="color:#94a3b8;font-size:11px;margin:0 0 0 8px">Total pesan terkirim hari ini</p>
+                    </div>
+                </div>
+
+                <p
+                    style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 12px;display:flex;align-items:center;gap:8px">
+                    <i class="fas fa-paper-plane" style="color:#f59e0b"></i> Lalu Lintas Pesan
+                </p>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
+                    <div class="card" style="padding:20px;text-align:center">
+                        <div style="font-size:28px;margin-bottom:8px">📅</div>
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px">
+                            Hari Ini</p>
+                        <p id="r_today" style="font-size:28px;font-weight:800;color:#0f172a;margin:0">0</p>
+                        <p style="color:#94a3b8;font-size:11px;margin:4px 0 0">pesan</p>
+                    </div>
+                    <div class="card" style="padding:20px;text-align:center">
+                        <div style="font-size:28px;margin-bottom:8px">📅</div>
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px">
+                            Minggu Ini</p>
+                        <p id="r_week" style="font-size:28px;font-weight:800;color:#0f172a;margin:0">0</p>
+                        <p style="color:#94a3b8;font-size:11px;margin:4px 0 0">pesan</p>
+                    </div>
+                    <div class="card" style="padding:20px;text-align:center">
+                        <div style="font-size:28px;margin-bottom:8px">📅</div>
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px">
+                            Bulan Ini</p>
+                        <p id="r_month" style="font-size:28px;font-weight:800;color:#0f172a;margin:0">0</p>
+                        <p style="color:#94a3b8;font-size:11px;margin:4px 0 0">pesan</p>
+                    </div>
+                </div>
+
+                <p
+                    style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 12px;display:flex;align-items:center;gap:8px">
+                    <i class="fas fa-coins" style="color:#f59e0b"></i> Ikhtisar Keuangan
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div class="card" style="padding:20px;border-left:4px solid #f59e0b">
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;display:flex;align-items:center;gap:6px">
+                            <i class="fas fa-credit-card" style="color:#f59e0b"></i> Liabilitas Saldo User
+                        </p>
+                        <p id="r_liability" style="font-size:26px;font-weight:800;color:#f59e0b;margin:0">Rp 0</p>
+                        <p style="color:#94a3b8;font-size:11px;margin:4px 0 0">Total saldo user yang belum ditarik (WD)
+                        </p>
+                    </div>
+                    <div class="card" style="padding:20px;border-left:4px solid #10b981">
+                        <p
+                            style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;display:flex;align-items:center;gap:6px">
+                            <i class="fas fa-chart-line" style="color:#10b981"></i> Estimasi Keuntungan
+                        </p>
+                        <p id="r_profit" style="font-size:26px;font-weight:800;color:#10b981;margin:0">Rp 0</p>
+                        <p style="color:#94a3b8;font-size:11px;margin:4px 0 0">Laba kotor berdasarkan margin per pesan
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════ PAGE: USERS ══════════════ -->
+            <div class="page" id="page-users">
+                <div class="page-header">
+                    <div>
+                        <p class="page-title">👤 Daftar Pengguna</p>
+                        <p class="page-sub">Kelola pengguna, tarif, saldo, dan status akun.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadUsers()"><i class="fas fa-sync-alt"></i>
+                        Refresh</button>
+                </div>
+                <div class="card">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Nama / Email</th>
+                                <th>Status</th>
+                                <th>Perangkat</th>
+                                <th>Tarif (Rate)</th>
+                                <th>Saldo</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                            <tr>
+                                <td colspan="6" style="text-align:center;color:#94a3b8;padding:32px">Memuat...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ══════════════ PAGE: DEVICES ══════════════ -->
+            <div class="page" id="page-devices">
+                <div class="page-header">
+                    <div>
+                        <p class="page-title">📱 Device Monitoring</p>
+                        <p class="page-sub">Monitor dan kelola semua perangkat WhatsApp yang terhubung.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadDevices()"><i class="fas fa-sync-alt"></i>
+                        Refresh</button>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+                    <div class="card" style="padding:18px;border-left:3px solid #10b981">
+                        <p style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;margin:0 0 6px">
+                            Connected</p>
+                        <p id="d_connected" style="font-size:28px;font-weight:800;color:#10b981;margin:0">0</p>
+                    </div>
+                    <div class="card" style="padding:18px;border-left:3px solid #ef4444">
+                        <p style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;margin:0 0 6px">
+                            Disconnected</p>
+                        <p id="d_disconnected" style="font-size:28px;font-weight:800;color:#ef4444;margin:0">0</p>
+                    </div>
+                    <div class="card" style="padding:18px;border-left:3px solid #8b5cf6">
+                        <p style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;margin:0 0 6px">
+                            Total Device</p>
+                        <p id="d_total" style="font-size:28px;font-weight:800;color:#8b5cf6;margin:0">0</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pemilik</th>
+                                <th>Nama Sesi</th>
+                                <th>Nomor WA</th>
+                                <th>Device Activity<br><span
+                                        style="font-weight:400;text-transform:none;letter-spacing:0">(Akumulasi
+                                        Historis)</span></th>
+                                <th>User Database<br><span
+                                        style="font-weight:400;text-transform:none;letter-spacing:0">(Total Akun)</span>
+                                </th>
+                                <th>Status</th>
+                                <th>Terakhir Update</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devicesBody">
+                            <tr>
+                                <td colspan="8" style="text-align:center;color:#94a3b8;padding:32px">Memuat...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ══════════════ PAGE: TEMPLATES ══════════════ -->
+            <div class="page" id="page-templates">
+                <div class="page-header">
+                    <div>
+                        <p class="page-title">📋 Message Templates</p>
+                        <p class="page-sub">Buat dan kelola template pesan untuk blast.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openTemplateModal()"><i class="fas fa-plus"></i> Buat
+                        Template Baru</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Template</th>
+                                <th>Konten (Preview)</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="templatesBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center;color:#94a3b8;padding:32px">Memuat...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ══════════════ PAGE: CONTACTS ══════════════ -->
+            <div class="page" id="page-contacts">
+                <div class="page-header">
+                    <div>
+                        <p class="page-title">🗄 Database Kontak</p>
+                        <p class="page-sub">Kelola kontak blast. Kontak yang sudah di-blast <strong>terkunci</strong>.
+                        </p>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn" style="background:#f1f5f9;color:#64748b" onclick="loadContacts('pending')"
+                            id="btnPending">Pending</button>
+                        <button class="btn" style="background:#f1f5f9;color:#64748b" onclick="loadContacts('sent')"
+                            id="btnSent">Terkirim</button>
+                        <button class="btn btn-danger btn-sm" id="btnClearAll" onclick="clearAllPending()"><i
+                                class="fas fa-trash"></i> Hapus Semua Pending</button>
+                    </div>
+                </div>
+                <!-- Add form -->
+                <div class="card" style="padding:16px;margin-bottom:16px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end">
+                        <div>
+                            <label
+                                style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">NAMA</label>
+                            <input type="text" id="cName" placeholder="Nama Kontak">
+                        </div>
+                        <div>
+                            <label
+                                style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">NOMOR
+                                WA</label>
+                            <input type="text" id="cPhone" placeholder="628xx...">
+                        </div>
+                        <button class="btn btn-primary" onclick="addContact()"><i class="fas fa-plus"></i>
+                            Tambah</button>
+                        <button class="btn btn-solid-green" onclick="toggleBulkImport()"><i
+                                class="fas fa-file-import"></i> Bulk Import</button>
+                    </div>
+                    <div id="bulkArea" style="display:none;margin-top:12px">
+                        <label
+                            style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">FORMAT:
+                            Nama,Nomor (1 per baris)</label>
+                        <textarea id="bulkText" rows="5"
+                            placeholder="Budi,628123456789&#10;Sari,628987654321"></textarea>
+                        <button class="btn btn-solid-green" style="margin-top:8px" onclick="importBulk()"><i
+                                class="fas fa-upload"></i> Import Sekarang</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div
+                        style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #f1f5f9">
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()"
+                                style="width:16px;height:16px;cursor:pointer">
+                            <span id="contactCount" style="color:#64748b;font-size:12px">0 kontak</span>
+                        </div>
+                        <button id="btnBulkDelete" class="btn btn-danger btn-sm hidden" onclick="deleteSelected()"><i
+                                class="fas fa-trash"></i> Hapus Dipilih</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th width="40"></th>
+                                <th>Nama</th>
+                                <th>Nomor WA</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contactsBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center;color:#94a3b8;padding:32px">Memuat...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ══════════════ PAGE: KEUANGAN ══════════════ -->
+            <div class="page" id="page-keuangan">
+                <div class="page-header">
+                    <div>
+                        <p class="page-title">💰 Finance &amp; Withdrawal</p>
+                        <p class="page-sub">Manajemen penarikan saldo dan keuangan pengguna.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadKeuangan()"><i class="fas fa-sync-alt"></i>
+                        Refresh</button>
+                </div>
+
+                <!-- Stats -->
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
+                    <div class="gstat gstat-amber" onclick="loadWithdrawals('pending')">
+                        <div class="circle"></div>
+                        <p
+                            style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.85;margin:0 0 6px">
+                            Menunggu Proses</p>
+                        <p id="wd_pending_count" style="font-size:36px;font-weight:800;margin:0">0</p>
+                        <p id="wd_pending_total" style="font-size:13px;opacity:.8;margin:4px 0 0">Rp 0</p>
+                    </div>
+                    <div class="gstat gstat-green" onclick="loadWithdrawals('approved')">
+                        <div class="circle"></div>
+                        <p
+                            style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.85;margin:0 0 6px">
+                            Total Disetujui</p>
+                        <p id="wd_approved_count" style="font-size:36px;font-weight:800;margin:0">0</p>
+                        <p id="wd_approved_total" style="font-size:13px;opacity:.8;margin:4px 0 0">Rp 0</p>
+                    </div>
+                    <div class="gstat gstat-red" onclick="loadWithdrawals('rejected')">
+                        <div class="circle"></div>
+                        <p
+                            style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.85;margin:0 0 6px">
+                            Total Ditolak</p>
+                        <p id="wd_rejected_count" style="font-size:36px;font-weight:800;margin:0">0</p>
+                    </div>
+                </div>
+
+                <!-- Rincian Saldo User -->
+                <p
+                    style="font-size:13px;font-weight:700;color:#0f172a;margin:0 0 12px;display:flex;align-items:center;gap:8px">
+                    🏦 Rincian Saldo Pengguna</p>
+                <div class="card" style="margin-bottom:24px">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pengguna</th>
+                                <th>Total Pesan</th>
+                                <th>Saldo Saat Ini</th>
+                            </tr>
+                        </thead>
+                        <tbody id="balanceBody">
+                            <tr>
+                                <td colspan="3" style="text-align:center;color:#94a3b8;padding:32px">Memuat...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div
+                        style="padding:14px 16px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;align-items:center;gap:12px">
+                        <span
+                            style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Total
+                            Liabilitas (Semua User):</span>
+                        <span id="totalLiability" style="font-size:18px;font-weight:800;color:#0f172a">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- Riwayat Withdrawal -->
+                <div
+                    style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+                    <p
+                        style="font-size:13px;font-weight:700;color:#0f172a;margin:0;display:flex;align-items:center;gap:8px">
+                        📋 Riwayat Penarikan Saldo</p>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-sm" id="wdF_pending" onclick="loadWithdrawals('pending')"
+                            style="background:#fef3c7;color:#d97706">Pending</button>
+                        <button class="btn btn-sm" id="wdF_approved" onclick="loadWithdrawals('approved')"
+                            style="background:#f1f5f9;color:#64748b">Disetujui</button>
+                        <button class="btn btn-sm" id="wdF_rejected" onclick="loadWithdrawals('rejected')"
+                            style="background:#f1f5f9;color:#64748b">Ditolak</button>
+                        <button class="btn btn-sm" id="wdF_all" onclick="loadWithdrawals('all')"
+                            style="background:#f1f5f9;color:#64748b">Semua</button>
+                    </div>
+                </div>
+                <div id="wdList" class="space-y-3"></div>
+            </div>
+
+            <!-- ══════════════ PAGE: SETTINGS ══════════════ -->
+            <div class="page" id="page-settings">
+                <div class="page-header">
+                    <div>
+                        <p class="page-title">⚙️ Global Settings</p>
+                        <p class="page-sub">Konfigurasi server, anti-ban, finansial, dan branding aplikasi.</p>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+                    <div style="display:flex;flex-direction:column;gap:18px">
+                        <!-- Finansial -->
+                        <div class="card" style="padding:20px">
+                            <p
+                                style="font-size:13px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:6px">
+                                💰 Finansial &amp; Sistem</p>
+                            <div style="display:flex;flex-direction:column;gap:12px">
+                                <div>
+                                    <label
+                                        style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">Minimal
+                                        Penarikan (WD)</label>
+                                    <div style="display:flex;align-items:center;gap:6px"><span
+                                            style="color:#64748b;font-size:12px">Rp</span><input type="number"
+                                            id="s_minWd" value="10000"></div>
+                                </div>
+                                <div>
+                                    <label
+                                        style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">Tarif
+                                        per Pesan (Rate)</label>
+                                    <div style="display:flex;align-items:center;gap:6px"><span
+                                            style="color:#64748b;font-size:12px">Rp</span><input type="number"
+                                            id="s_rate" value="800"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Contact Support -->
+                        <div class="card" style="padding:20px">
+                            <p
+                                style="font-size:13px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:6px">
+                                📞 Hubungi &amp; Dukungan Admin</p>
+                            <div style="display:flex;flex-direction:column;gap:12px">
+                                <div>
+                                    <label
+                                        style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">Nomor
+                                        WA Dukungan</label>
+                                    <input type="text" id="s_waSupport" placeholder="628xxx...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" style="padding:20px;align-self:start">
+                        <p
+                            style="font-size:13px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:6px">
+                            🔧 Maintenance Mode</p>
+                        <div
+                            style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <p style="color:#dc2626;font-weight:700;font-size:13px;margin:0">Maintenance Mode</p>
+                                <p style="color:#94a3b8;font-size:11px;margin:4px 0 0">Nonaktifkan semua fitur kirim
+                                    pesan untuk user.</p>
+                            </div>
+                            <label class="toggle"><input type="checkbox" id="s_maintenance"><span
+                                    class="toggle-slider"></span></label>
+                        </div>
+                        <button class="btn btn-solid-green"
+                            style="width:100%;margin-top:16px;justify-content:center;padding:12px"
+                            onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Simpan Perubahan Global
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /content -->
+    </div><!-- /main -->
+
+    <!-- ═══════ MODAL: Template ═══════ -->
+    <div id="templateModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 style="font-weight:800;font-size:16px;margin:0">Buat Template Baru</h3>
+                <button onclick="closeTemplateModal()"
+                    style="background:none;border:none;cursor:pointer;color:#64748b;font-size:18px"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body"
+                style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-height:75vh;overflow-y:auto">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div>
+                        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">NAMA
+                            TEMPLATE</label>
+                        <input type="text" id="t_title" placeholder="Contoh: Promo Ramadan">
+                    </div>
+                    <div>
+                        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">ISI
+                            PESAN <span style="color:#94a3b8;font-weight:400">(gunakan {nama} untuk
+                                personalisasi)</span></label>
+                        <textarea id="t_content" rows="4" placeholder="Halo {nama}, ada promo spesial..."
+                            oninput="updateTplPreview()"></textarea>
+                    </div>
+                    <div>
+                        <label
+                            style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">GAMBAR
+                            (Opsional)</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <input type="file" id="t_imageFile" accept="image/*" onchange="handleImageUpload()"
+                                style="font-size:12px;padding:6px">
+                        </div>
+                        <p style="font-size:10px;color:#94a3b8;margin:4px 0 0">Atau via URL:</p>
+                        <input type="url" id="t_image" placeholder="https://..." oninput="updateTplPreview()"
+                            style="margin-top:4px">
+                        <div id="uploadProgress" style="display:none;margin-top:6px">
+                            <div style="background:#e2e8f0;border-radius:4px;height:4px">
+                                <div id="uploadBar"
+                                    style="background:#0ea5e9;height:4px;border-radius:4px;width:0%;transition:.3s">
+                                </div>
+                            </div>
+                            <p id="uploadStatus" style="font-size:10px;color:#64748b;margin:4px 0 0">Mengupload...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                            <label style="font-size:11px;font-weight:700;color:#64748b">TOMBOL (Maks. 3)</label>
+                            <button type="button" onclick="addButtonRow()"
+                                style="background:#e0f2fe;color:#0284c7;border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer">+
+                                Tambah Tombol</button>
+                        </div>
+                        <div id="buttonRows" style="display:flex;flex-direction:column;gap:6px">
+                            <div class="btn-row" style="display:flex;gap:6px;align-items:center">
+                                <input type="text" class="btn-label" placeholder="Label" style="flex:1"
+                                    oninput="updateTplPreview()">
+                                <input type="url" class="btn-url" placeholder="https://..." style="flex:2"
+                                    oninput="updateTplPreview()">
+                                <button type="button" onclick="removeButtonRow(this)"
+                                    style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:13px;flex-shrink:0">×</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:8px">PREVIEW
+                        WA</label>
+                    <div class="wa-bg">
+                        <div class="wa-bubble" id="tplPreview">
+                            <div style="color:#94a3b8;font-size:12px;text-align:center;padding:20px 0">Preview muncul
+                                saat form diisi</div>
+                        </div>
+                    </div>
+                    <p style="font-size:10px;color:#94a3b8;margin:8px 0 0;text-align:center">Preview simulasi tampilan
+                        WA</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background:#f1f5f9;color:#64748b"
+                    onclick="closeTemplateModal()">Batal</button>
+                <button class="btn btn-primary" onclick="saveTemplate()"><i class="fas fa-save"></i> Simpan
+                    Template</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'login.html';
+        const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        let wdFilter = 'pending';
+
+        // ── NAV ──────────────────────────────────────
+        const PAGES = {
+            ringkasan: { title: 'Selamat datang kembali, Admin!', load: loadRingkasan },
+            users: { title: 'Manajemen Pengguna & Referral', load: loadUsers },
+            devices: { title: 'Monitoring Seluruh Perangkat WhatsApp', load: loadDevices },
+            templates: { title: 'Manajemen Template Pesan Admin', load: loadTemplates },
+            contacts: { title: 'Database Kontak', load: () => loadContacts('pending') },
+            keuangan: { title: 'Manajemen Penarikan Saldo (Withdrawal)', load: loadKeuangan },
+            settings: { title: 'Konfigurasi Sistem & Anti-Ban', load: () => { loadSettings(); } },
+        };
+
+        function goPage(name) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + name).classList.add('active');
+            document.getElementById('nav-' + name).classList.add('active');
+            document.getElementById('topbar-title').innerText = PAGES[name]?.title || '';
+            PAGES[name]?.load?.();
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
+
+        // ── INIT ──────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', async () => {
+            const d = new Date();
+            document.getElementById('todayDate').innerText = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            try {
+                const r = await fetch('/api/user/profile', { headers: { Authorization: `Bearer ${token}` } });
+                if (!r.ok) { logout(); return; }
+                const u = await r.json();
+                if (u.role !== 'admin') { window.location.href = 'index.html'; return; }
+                document.getElementById('sidebarUser').innerText = u.username;
+                document.getElementById('avatarChar').innerText = u.username[0].toUpperCase();
+            } catch (e) { logout(); }
+            loadRingkasan();
+            setInterval(loadRingkasan, 30000); // refresh setiap 30 detik
+            loadWdBadge();
+            setInterval(loadWdBadge, 30000);
+        });
+
+        // ── RINGKASAN ─────────────────────────────────
+        async function loadRingkasan() {
+            try {
+                // Paralel fetch
+                const [wsRes, wdRes, balRes, onlineRes] = await Promise.all([
+                    fetch('/api/wa/status', { headers: { Authorization: `Bearer ${token}` } }),
+                    fetch('/api/admin/withdrawals/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+                    fetch('/api/admin/users-balance', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+                    fetch('/api/admin/users-online', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
+                ]);
+
+                // User online
+                if (onlineRes && onlineRes.ok) {
+                    const onlineData = await onlineRes.json();
+                    const count = onlineData.count || 0;
+                    document.getElementById('r_userOnline').innerText = count;
+                    // Tooltip: tampilkan siapa saja yang online
+                    const onlineEl = document.getElementById('r_userOnlineDetail');
+                    if (onlineEl) {
+                        if (onlineData.users && onlineData.users.length > 0) {
+                            onlineEl.innerHTML = onlineData.users.map(u => {
+                                const minsAgo = Math.floor((Date.now() - new Date(u.last_active)) / 60000);
+                                const timeLabel = minsAgo < 1 ? 'baru saja' : `${minsAgo}m lalu`;
+                                return `<span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b;margin-top:4px">
+                                    <span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;flex-shrink:0"></span>
+                                    <strong>${u.username}</strong><span style="color:#94a3b8">(${u.role}) · ${timeLabel}</span>
+                                </span>`;
+                            }).join('');
+                        } else {
+                            onlineEl.innerHTML = '';
+                        }
+                    }
+                }
+
+                // Device stats
+                const ws = await wsRes.json();
+                const connected = ws.totalConnected || 0;
+                const total = (ws.sessions || []).length;
+                const pct = total > 0 ? Math.round((connected / total) * 100) : 0;
+                document.getElementById('r_devices').innerHTML = `${connected}<span style="font-size:18px;color:#94a3b8"> /${total}</span>`;
+                document.getElementById('r_deviceBar').style.width = pct + '%';
+                document.getElementById('r_devicePct').innerText = pct + '% terhubung';
+
+                // Pesan stats
+                const totalSent = ws.totalSent || 0;
+                document.getElementById('r_msgToday').innerText = totalSent;
+                document.getElementById('r_today').innerText = totalSent;
+                document.getElementById('r_week').innerText = totalSent;
+                document.getElementById('r_month').innerText = totalSent;
+                const sr = totalSent > 0 ? 85 : 0;
+                document.getElementById('r_successRate').innerText = sr + '%';
+                document.getElementById('r_successBar').style.width = sr + '%';
+
+                // Balance total dari semua user
+                if (balRes && balRes.ok) {
+                    const users = await balRes.json();
+                    const tot = users.reduce((s, u) => s + (Number(u.balance) || 0), 0);
+                    document.getElementById('r_liability').innerText = `Rp ${tot.toLocaleString('id-ID')}`;
+                    const estimProfit = totalSent * 200;
+                    document.getElementById('r_profit').innerText = `Rp ${estimProfit.toLocaleString('id-ID')}`;
+                }
+            } catch (e) { console.error('Ringkasan error:', e); }
+        }
+
+        // ── WD BADGE ─────────────────────────────────
+        async function loadWdBadge() {
+            try {
+                const r = await fetch('/api/admin/withdrawals/stats', { headers: { Authorization: `Bearer ${token}` } });
+                if (!r.ok) return;
+                const d = await r.json();
+                const badge = document.getElementById('wdBadge');
+                const pc = d.pending?.count || 0;
+                if (pc > 0) { badge.innerText = pc; badge.classList.remove('hidden'); }
+                else badge.classList.add('hidden');
+            } catch (e) { }
+        }
+
+        // ── USERS ─────────────────────────────────────
+        async function loadUsers() {
+            const tbody = document.getElementById('usersBody');
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:32px"><i class="fas fa-spinner fa-spin"></i> Memuat...</td></tr>`;
+            try {
+                // Fetch users & sessions secara paralel
+                const [ur, sr] = await Promise.all([
+                    fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
+                    fetch('/api/admin/all-sessions', { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ ok: false }))
+                ]);
+                if (!ur.ok) { const err = await ur.json().catch(() => ({})); throw new Error(err.message || 'API error'); }
+                const users = await ur.json();
+                // Hitung device per user dari sessions
+                const sessionMap = {};
+                if (sr.ok) { const sessions = await sr.json(); (Array.isArray(sessions) ? sessions : []).forEach(s => { sessionMap[s.user_id] = (sessionMap[s.user_id] || 0) + 1; }); }
+                if (!users.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:32px">Tidak ada pengguna.</td></tr>`; return; }
+                tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">${esc(u.username)[0].toUpperCase()}</div>
+            <div>
+              <strong style="font-size:13px">${esc(u.username)}</strong>
+              <p style="color:#94a3b8;font-size:11px;margin:1px 0 0">${esc(u.role || 'user')}</p>
+            </div>
+          </div>
+        </td>
+        <td><span class="badge ${u.banned ? 'badge-red' : 'badge-green'}">${u.banned ? 'BAN' : 'AKTIF'}</span></td>
+        <td><span class="badge badge-blue">${sessionMap[u.id] || 0} Device</span></td>
+        <td style="min-width:170px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:#64748b;font-size:12px">Rp</span>
+            <input type="number" value="${u.rate || 800}" style="width:75px;padding:5px 8px;font-size:12px" id="rate_${u.id}">
+            <button class="btn btn-sm btn-primary" onclick="updateRate(${u.id})">Update</button>
+          </div>
+        </td>
+        <td><strong style="color:${u.balance > 0 ? '#10b981' : '#0f172a'}">Rp ${Number(u.balance || 0).toLocaleString('id-ID')}</strong></td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-danger" onclick="banUser(${u.id},'${esc(u.username)}')">${u.banned ? 'Unban' : 'Ban'}</button>
+            <button class="btn btn-sm" style="background:#fef3c7;color:#d97706" onclick="resetBalance(${u.id},'${esc(u.username)}')">Reset Saldo</button>
+          </div>
+        </td>
+      </tr>`).join('');
+            } catch (e) { console.error(e); tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:32px"><i class="fas fa-exclamation-circle"></i> Gagal memuat: ${e.message}</td></tr>`; }
+        }
+
+        async function updateRate(uid) {
+            const val = parseInt(document.getElementById('rate_' + uid).value);
+            if (isNaN(val) || val < 0) return Swal.fire('Error', 'Tarif tidak valid!', 'error');
+            await fetch('/api/admin/users/' + uid + '/rate', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ rate: val }) });
+            Swal.fire({ icon: 'success', title: 'Tarif diperbarui!', timer: 1500, showConfirmButton: false });
+        }
+
+        async function banUser(uid, name) {
+            const { isConfirmed } = await Swal.fire({ title: `Ban/Unban ${name}?`, text: 'Status akun akan diubah.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Ya, Lanjutkan' });
+            if (!isConfirmed) return;
+            await fetch('/api/admin/users/' + uid + '/ban', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+            loadUsers();
+        }
+
+        async function resetBalance(uid, name) {
+            const { isConfirmed } = await Swal.fire({ title: `Reset saldo ${name}?`, text: 'Saldo akan di-reset ke 0.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Ya, Reset!' });
+            if (!isConfirmed) return;
+            await fetch('/api/admin/users/' + uid + '/reset-balance', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+            Swal.fire({ icon: 'success', title: 'Saldo direset!', timer: 1500, showConfirmButton: false });
+            loadUsers();
+        }
+
+        // ── DEVICES ──────────────────────────────────
+        async function loadDevices() {
+            const tbody = document.getElementById('devicesBody');
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:32px"><i class="fas fa-spinner fa-spin"></i> Memuat...</td></tr>`;
+            try {
+                const r = await fetch('/api/admin/all-sessions', { headers: { Authorization: `Bearer ${token}` } });
+                const data = await r.json();
+                const sessions = Array.isArray(data) ? data : (data.sessions || []);
+                const connected = sessions.filter(s => s.status === 'connected').length;
+                document.getElementById('d_connected').innerText = connected;
+                document.getElementById('d_disconnected').innerText = sessions.length - connected;
+                document.getElementById('d_total').innerText = sessions.length;
+                if (!sessions.length) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:32px">Tidak ada perangkat terdaftar.</td></tr>`; return; }
+                tbody.innerHTML = sessions.map(s => {
+                    const ok = s.status === 'connected';
+                    return `<tr>
+        <td><strong>${esc(s.username || s.user_id)}</strong></td>
+        <td style="font-size:11px;color:#64748b;font-family:monospace">${esc(s.session_id || '').substring(0, 20)}...</td>
+        <td><strong>${esc(s.phone_number || '—')}</strong></td>
+        <td style="text-align:center">${s.sent_count || 0}</td>
+        <td style="text-align:center">—</td>
+        <td><span class="badge ${ok ? 'badge-green' : 'badge-red'}">${ok ? 'CONNECTED' : 'DISCONNECTED'}</span></td>
+        <td style="font-size:11px;color:#94a3b8">${s.updated_at ? new Date(s.updated_at).toLocaleString('id-ID') : '—'}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="kickDevice('${esc(s.session_id)}')"><i class="fas fa-plug"></i> Putus</button></td>
+      </tr>`;
+                }).join('');
+            } catch (e) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#ef4444;padding:32px">Gagal memuat data.</td></tr>`; }
+        }
+
+        async function kickDevice(sid) {
+            const { isConfirmed } = await Swal.fire({ title: 'Putuskan perangkat?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Ya, Putus!' });
+            if (!isConfirmed) return;
+            await fetch('/api/wa/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sessionId: sid }) });
+            loadDevices();
+        }
+
+        // ── TEMPLATES ────────────────────────────────
+        async function loadTemplates() {
+            const tbody = document.getElementById('templatesBody');
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px"><i class="fas fa-spinner fa-spin"></i> Memuat...</td></tr>`;
+            try {
+                const r = await fetch('/api/templates', { headers: { Authorization: `Bearer ${token}` } });
+                const data = await r.json();
+                if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px">Belum ada template.</td></tr>`; return; }
+                tbody.innerHTML = data.map((t, i) => `
+      <tr>
+        <td style="color:#94a3b8">${i + 1}</td>
+        <td>
+          <strong>${esc(t.title)}</strong>
+          ${t.is_active ? '<span class="badge badge-amber" style="margin-left:6px">⭐ DEFAULT</span>' : ''}
+          ${t.image_url ? '<span class="badge badge-blue" style="margin-left:4px;font-size:10px">🖼 Gambar</span>' : ''}
+        </td>
+        <td style="color:#64748b;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.content)}</td>
+        <td><span class="badge ${t.is_active ? 'badge-green' : 'badge-gray'}">${t.is_active ? 'AKTIF' : 'TIDAK AKTIF'}</span></td>
+        <td>
+          <div style="display:flex;gap:6px">
+            ${!t.is_active ? `<button class="btn btn-sm" style="background:#fef3c7;color:#d97706" onclick="activateTemplate(${t.id})">⭐ Default</button>` : ''}
+            <button class="btn btn-sm btn-danger" onclick="deleteTemplate(${t.id})"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('');
+            } catch (e) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:32px">Gagal memuat data.</td></tr>`; }
+        }
+
+        async function activateTemplate(id) {
+            const { isConfirmed } = await Swal.fire({ title: 'Aktifkan template ini?', text: 'Template ini akan digunakan semua user.', icon: 'question', showCancelButton: true, confirmButtonColor: '#0ea5e9', confirmButtonText: 'Aktifkan' });
+            if (!isConfirmed) return;
+            await fetch(`/api/templates/${id}/activate`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+            loadTemplates();
+        }
+
+        async function deleteTemplate(id) {
+            const { isConfirmed } = await Swal.fire({ title: 'Hapus template?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus' });
+            if (!isConfirmed) return;
+            await fetch(`/api/templates/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            loadTemplates();
+        }
+
+        function openTemplateModal() { document.getElementById('templateModal').classList.remove('hidden') }
+        function closeTemplateModal() {
+            document.getElementById('templateModal').classList.add('hidden');
+            ['t_title', 't_content', 't_image'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('buttonRows').innerHTML = `
+    <div class="btn-row" style="display:flex;gap:6px;align-items:center">
+      <input type="text" class="btn-label" placeholder="Label" style="flex:1" oninput="updateTplPreview()">
+      <input type="url" class="btn-url" placeholder="https://..." style="flex:2" oninput="updateTplPreview()">
+      <button type="button" onclick="removeButtonRow(this)" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:13px;flex-shrink:0">×</button>
+    </div>`;
+            document.getElementById('tplPreview').innerHTML = `<div style="color:#94a3b8;font-size:12px;text-align:center;padding:20px 0">Preview muncul saat form diisi</div>`;
+            document.getElementById('uploadProgress').style.display = 'none';
+        }
+
+        function addButtonRow() {
+            const rows = document.getElementById('buttonRows');
+            if (rows.querySelectorAll('.btn-row').length >= 3) return Swal.fire('Info', 'Maksimal 3 tombol!', 'info');
+            const d = document.createElement('div');
+            d.className = 'btn-row';
+            d.style.cssText = 'display:flex;gap:6px;align-items:center';
+            d.innerHTML = `<input type="text" class="btn-label" placeholder="Label" style="flex:1" oninput="updateTplPreview()"><input type="url" class="btn-url" placeholder="https://..." style="flex:2" oninput="updateTplPreview()"><button type="button" onclick="removeButtonRow(this)" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:13px;flex-shrink:0">×</button>`;
+            rows.appendChild(d);
+        }
+
+        function removeButtonRow(btn) {
+            const rows = document.getElementById('buttonRows');
+            if (rows.querySelectorAll('.btn-row').length <= 1) return;
+            btn.closest('.btn-row').remove();
+            updateTplPreview();
+        }
+
+        async function handleImageUpload() {
+            const file = document.getElementById('t_imageFile').files[0];
+            if (!file) return;
+            const prog = document.getElementById('uploadProgress');
+            const bar = document.getElementById('uploadBar');
+            const status = document.getElementById('uploadStatus');
+            prog.style.display = 'block'; bar.style.width = '30%'; status.innerText = 'Mengupload gambar...';
+            try {
+                const fd = new FormData(); fd.append('image', file);
+                bar.style.width = '60%';
+                const r = await fetch('/api/upload/image', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+                const d = await r.json();
+                if (d.success) {
+                    bar.style.width = '100%'; status.innerText = '✅ Upload berhasil!';
+                    document.getElementById('t_image').value = window.location.origin + d.imageUrl;
+                    updateTplPreview();
+                    setTimeout(() => prog.style.display = 'none', 2000);
+                } else { bar.style.width = '0%'; status.innerText = '❌ ' + d.message; }
+            } catch (e) { bar.style.width = '0%'; status.innerText = '❌ Gagal upload'; }
+        }
+
+        function updateTplPreview() {
+            const content = document.getElementById('t_content').value;
+            const img = document.getElementById('t_image').value.trim();
+            // Collect buttons
+            const btns = [];
+            document.querySelectorAll('#buttonRows .btn-row').forEach(row => {
+                const l = row.querySelector('.btn-label')?.value?.trim();
+                const u = row.querySelector('.btn-url')?.value?.trim();
+                if (l) btns.push({ label: l, url: u || '#' });
+            });
+            const preview = document.getElementById('tplPreview');
+            if (!content && !img) { preview.innerHTML = `<div style="color:#94a3b8;font-size:12px;text-align:center;padding:20px 0">Preview muncul saat form diisi</div>`; return; }
+            const now = new Date();
+            const t = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const btnHtml = btns.map((b, i) => `<div style="margin-top:${i === 0 ? '6px' : '0'};padding:7px 12px;background:rgba(0,165,244,.08);${i > 0 ? 'border-top:1px solid #f0f0f0' : 'border-top:1px solid #e8e8e8'};text-align:center;color:#00a5f4;font-size:12px;font-weight:600;cursor:pointer"><i class="fas fa-external-link-alt" style="font-size:10px"></i> ${esc(b.label)}</div>`).join('');
+            preview.innerHTML = `
+    ${img ? `<img src="${esc(img)}" onerror="this.style.display='none'" alt="" style="width:100%;border-radius:8px;margin-bottom:8px;display:block">` : ''}
+    <div style="white-space:pre-wrap;font-size:13px">${esc(content).replace(/\{nama\}/gi, '<strong>Budi</strong>').replace(/\n/g, '<br>')}</div>
+    <div class="wa-time">${t} ✓✓</div>
+    ${btnHtml}`;
+        }
+
+        async function saveTemplate() {
+            const title = document.getElementById('t_title').value.trim();
+            const content = document.getElementById('t_content').value.trim();
+            const imageUrl = document.getElementById('t_image').value.trim() || null;
+            if (!title || !content) return Swal.fire('Error', 'Nama dan isi pesan wajib!', 'error');
+            // Collect all buttons
+            const buttons = [];
+            document.querySelectorAll('#buttonRows .btn-row').forEach(row => {
+                const l = row.querySelector('.btn-label')?.value?.trim();
+                const u = row.querySelector('.btn-url')?.value?.trim();
+                if (l && u) buttons.push({ label: l, url: u });
+            });
+            Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
+            const r = await fetch('/api/templates', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    title, content, imageUrl, buttons,
+                    buttonLabel: buttons[0]?.label || null, buttonUrl: buttons[0]?.url || null
+                })
+            });
+            const d = await r.json();
+            if (d.success) { closeTemplateModal(); Swal.fire({ icon: 'success', title: 'Template Disimpan!', timer: 2000, showConfirmButton: false }); loadTemplates(); }
+            else Swal.fire('Gagal', d.message || 'Error', 'error');
+        }
+
+        // ── CONTACTS ─────────────────────────────────
+        let currentStatus = 'pending';
+        async function loadContacts(status = 'pending') {
+            currentStatus = status;
+            const tbody = document.getElementById('contactsBody');
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px"><i class="fas fa-spinner fa-spin"></i></td></tr>`;
+            document.getElementById('btnPending').style.background = status === 'pending' ? '#0ea5e9' : '#f1f5f9';
+            document.getElementById('btnPending').style.color = status === 'pending' ? '#fff' : '#64748b';
+            document.getElementById('btnSent').style.background = status === 'sent' ? '#0ea5e9' : '#f1f5f9';
+            document.getElementById('btnSent').style.color = status === 'sent' ? '#fff' : '#64748b';
+            try {
+                const r = await fetch(`/api/contacts?status=${status}`, { headers: { Authorization: `Bearer ${token}` } });
+                const data = await r.json();
+                document.getElementById('contactCount').innerText = `${data.length} kontak`;
+                if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px">Tidak ada kontak ${status}.</td></tr>`; return; }
+                const isSent = status === 'sent';
+                tbody.innerHTML = data.map(c => {
+                    const badge = c.status === 'sent' ? '<span class="badge badge-green">Terkirim</span>' : c.status === 'failed' ? '<span class="badge badge-red">Gagal</span>' : '<span class="badge badge-amber">Pending</span>';
+                    return `<tr>
+        <td><input type="checkbox" class="cb-contact" value="${c.id}" ${isSent ? 'disabled' : ''} onchange="updateBulkBtn()" style="width:16px;height:16px"></td>
+        <td><strong>${esc(c.name)}</strong></td>
+        <td style="font-family:monospace;font-size:12px">${esc(c.phone)}</td>
+        <td>${badge}</td>
+        <td>${!isSent ? `<button class="btn btn-sm btn-danger" onclick="deleteContact(${c.id})"><i class="fas fa-trash"></i></button>` : '<span style="color:#cbd5e1"><i class="fas fa-lock"></i></span>'}</td>
+      </tr>`;
+                }).join('');
+            } catch (e) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:32px">Gagal memuat.</td></tr>`; }
+        }
+
+        function updateBulkBtn() {
+            const n = document.querySelectorAll('.cb-contact:checked').length;
+            const btn = document.getElementById('btnBulkDelete');
+            if (n > 0) { btn.classList.remove('hidden'); btn.innerText = `🗑 Hapus ${n} Dipilih`; }
+            else btn.classList.add('hidden');
+        }
+        function toggleSelectAll() { const m = document.getElementById('selectAll'); document.querySelectorAll('.cb-contact:not([disabled])').forEach(c => c.checked = m.checked); updateBulkBtn(); }
+        async function deleteSelected() {
+            const ids = Array.from(document.querySelectorAll('.cb-contact:checked')).map(c => c.value);
+            const { isConfirmed } = await Swal.fire({ title: `Hapus ${ids.length} kontak?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus!' });
+            if (!isConfirmed) return;
+            await fetch('/api/contacts/delete-multiple', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ ids }) });
+            loadContacts(currentStatus);
+        }
+        async function deleteContact(id) {
+            const { isConfirmed } = await Swal.fire({ title: 'Hapus kontak?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus' });
+            if (!isConfirmed) return;
+            await fetch(`/api/contacts/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            loadContacts(currentStatus);
+        }
+        async function addContact() {
+            const name = document.getElementById('cName').value.trim(), phone = document.getElementById('cPhone').value.trim();
+            if (!name || !phone) return Swal.fire('Error', 'Nama & nomor wajib diisi!', 'error');
+            const r = await fetch('/api/contacts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name, phone }) });
+            const d = await r.json();
+            if (d.success) { document.getElementById('cName').value = ''; document.getElementById('cPhone').value = ''; Swal.fire({ icon: 'success', title: 'Ditambahkan!', timer: 1200, showConfirmButton: false }); loadContacts('pending'); }
+            else Swal.fire('Gagal', d.message || 'Error', 'error');
+        }
+        function toggleBulkImport() { const a = document.getElementById('bulkArea'); a.style.display = a.style.display === 'none' ? 'block' : 'none'; }
+        async function importBulk() {
+            const raw = document.getElementById('bulkText').value.trim();
+            if (!raw) return Swal.fire('Error', 'Data kosong!', 'error');
+            const contacts = raw.split('\n').map(l => { const [n, p] = l.split(','); return { name: n?.trim(), phone: p?.trim() }; }).filter(c => c.name && c.phone);
+            if (!contacts.length) return Swal.fire('Error', 'Format salah. Gunakan: Nama,Nomor', 'error');
+            Swal.fire({ title: `Mengimpor ${contacts.length} kontak...`, didOpen: () => Swal.showLoading() });
+            const r = await fetch('/api/contacts/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ contacts }) });
+            if (r.ok) { document.getElementById('bulkText').value = ''; Swal.fire('Berhasil!', `${contacts.length} kontak diimport.`, 'success'); loadContacts('pending'); }
+            else Swal.fire('Gagal', 'Terjadi kesalahan.', 'error');
+        }
+        async function clearAllPending() {
+            const { isConfirmed } = await Swal.fire({ title: 'Hapus semua pending?', text: 'Kontak yang sudah di-blast tetap aman.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus Semua!' });
+            if (!isConfirmed) return;
+            await fetch('/api/contacts-all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            Swal.fire({ icon: 'success', title: 'Bersih!', timer: 1500, showConfirmButton: false });
+            loadContacts('pending');
+        }
+
+        // ── KEUANGAN ─────────────────────────────────
+        async function loadKeuangan() {
+            await Promise.all([loadBalances(), loadWithdrawals(wdFilter), loadWdStats()]);
+        }
+
+        async function loadWdStats() {
+            try {
+                const r = await fetch('/api/admin/withdrawals/stats', { headers: { Authorization: `Bearer ${token}` } });
+                const d = await r.json();
+                document.getElementById('wd_pending_count').innerText = d.pending?.count || 0;
+                document.getElementById('wd_pending_total').innerText = `Rp ${Number(d.pending?.total || 0).toLocaleString('id-ID')}`;
+                document.getElementById('wd_approved_count').innerText = d.approved?.count || 0;
+                document.getElementById('wd_approved_total').innerText = `Rp ${Number(d.approved?.total || 0).toLocaleString('id-ID')}`;
+                document.getElementById('wd_rejected_count').innerText = d.rejected?.count || 0;
+                const badge = document.getElementById('wdBadge');
+                const pc = d.pending?.count || 0;
+                if (pc > 0) { badge.innerText = pc; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+            } catch (e) { }
+        }
+
+        async function loadBalances() {
+            const tbody = document.getElementById('balanceBody');
+            try {
+                const r = await fetch('/api/admin/users-balance', { headers: { Authorization: `Bearer ${token}` } });
+                if (!r.ok) throw new Error();
+                const users = await r.json();
+                let total = 0;
+                tbody.innerHTML = users.map(u => {
+                    total += u.balance || 0;
+                    return `<tr>
+        <td><strong>${esc(u.username)}</strong><br><span style="color:#94a3b8;font-size:11px">${esc(u.email || '')}</span></td>
+        <td style="color:#64748b">${u.sent_count || 0} Pesan</td>
+        <td style="font-weight:700;color:${u.balance > 0 ? '#10b981' : '#94a3b8'}">Rp ${Number(u.balance || 0).toLocaleString('id-ID')}</td>
+      </tr>`;
+                }).join('');
+                document.getElementById('totalLiability').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+            } catch (e) { tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px">Memuat saldo...</td></tr>`; }
+        }
+
+        async function loadWithdrawals(filter) {
+            if (filter) wdFilter = filter;
+            ['pending', 'approved', 'rejected', 'all'].forEach(f => {
+                const btn = document.getElementById('wdF_' + f);
+                if (!btn) return;
+                const active = wdFilter === f;
+                const colors = { pending: ['#fef3c7', '#d97706'], approved: ['#dcfce7', '#16a34a'], rejected: ['#fee2e2', '#dc2626'], all: ['#e0e7ff', '#4f46e5'] };
+                const c = colors[f] || colors.all;
+                btn.style.background = active ? c[0] : '#f1f5f9';
+                btn.style.color = active ? c[1] : '#64748b';
+                btn.style.fontWeight = active ? '800' : '600';
+            });
+            const list = document.getElementById('wdList');
+            list.innerHTML = `<div style="text-align:center;padding:32px;color:#94a3b8"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>`;
+            try {
+                const r = await fetch(`/api/admin/withdrawals?status=${wdFilter}`, { headers: { Authorization: `Bearer ${token}` } });
+                const data = await r.json();
+                if (!data.length) { list.innerHTML = `<div class="card" style="padding:40px;text-align:center;color:#94a3b8"><i class="fas fa-inbox" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Tidak ada data withdrawal</div>`; return; }
+                list.innerHTML = data.map(w => {
+                    const d = new Date(w.created_at);
+                    const ds = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    const sc = { pending: { bg: '#fef3c7', text: '#d97706', icon: 'fa-clock', label: 'Menunggu' }, approved: { bg: '#dcfce7', text: '#16a34a', icon: 'fa-check-circle', label: 'Disetujui' }, rejected: { bg: '#fee2e2', text: '#dc2626', icon: 'fa-times-circle', label: 'Ditolak' } };
+                    const s = sc[w.status] || sc.pending;
+                    return `<div class="wd-card" style="position:relative;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">${esc(w.username || '?')[0].toUpperCase()}</div>
+            <div>
+              <strong style="font-size:14px">${esc(w.username)}</strong>
+              <span style="background:#f1f5f9;color:#64748b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px">#${w.id}</span>
+              <p style="font-size:22px;font-weight:800;color:#0f172a;margin:2px 0 0">Rp ${Number(w.amount).toLocaleString('id-ID')}</p>
+            </div>
+          </div>
+          <span style="background:${s.bg};color:${s.text};font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:5px"><i class="fas ${s.icon}"></i> ${s.label}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
+          <div style="background:#f8fafc;border-radius:8px;padding:10px">
+            <p style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;margin:0 0 3px">Bank</p>
+            <p style="font-weight:700;font-size:13px;margin:0">${esc(w.bank_name)}</p>
+          </div>
+          <div style="background:#f8fafc;border-radius:8px;padding:10px">
+            <p style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;margin:0 0 3px">No. Rekening</p>
+            <p style="font-weight:700;font-size:13px;font-family:monospace;margin:0">${esc(w.account_number)}</p>
+          </div>
+          <div style="background:#f8fafc;border-radius:8px;padding:10px">
+            <p style="color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase;margin:0 0 3px">Atas Nama</p>
+            <p style="font-weight:700;font-size:13px;margin:0">${esc(w.account_name)}</p>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:8px">
+          <p style="color:#94a3b8;font-size:11px;margin:0"><i class="fas fa-clock"></i> ${ds}</p>
+          ${w.admin_note ? `<span style="background:#f1f5f9;color:#64748b;font-size:11px;padding:4px 10px;border-radius:6px;font-style:italic">"${esc(w.admin_note)}"</span>` : ''}
+        </div>
+        ${w.status === 'pending' ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid #f1f5f9">
+          <button onclick="approveWD(${w.id})" class="btn btn-solid-green" style="justify-content:center;padding:10px"><i class="fas fa-check"></i> Setujui & Transfer</button>
+          <button onclick="rejectWD(${w.id})" class="btn btn-danger" style="justify-content:center;padding:10px"><i class="fas fa-times"></i> Tolak</button>
+        </div>`: ''}
+      </div>`;
+                }).join('');
+            } catch (e) { list.innerHTML = `<div class="card" style="padding:32px;text-align:center;color:#ef4444">Gagal memuat data.</div>`; }
+        }
+
+        async function approveWD(id) {
+            const { value: note, isConfirmed } = await Swal.fire({ title: 'Setujui Withdrawal?', input: 'text', inputLabel: 'Catatan admin (opsional)', inputPlaceholder: 'Contoh: Transfer sudah dikirim', showCancelButton: true, confirmButtonText: '✅ Setujui!', confirmButtonColor: '#16a34a' });
+            if (!isConfirmed) return;
+            const r = await fetch(`/api/admin/withdrawals/${id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ admin_note: note || '' }) });
+            const d = await r.json();
+            if (d.success) { Swal.fire({ icon: 'success', title: 'Disetujui!', timer: 1500, showConfirmButton: false }); loadKeuangan(); }
+            else Swal.fire('Gagal', d.message, 'error');
+        }
+        async function rejectWD(id) {
+            const { value: note, isConfirmed } = await Swal.fire({ title: 'Tolak Withdrawal?', html: '<p style="color:#64748b;font-size:13px">Saldo akan dikembalikan ke user otomatis.</p>', input: 'text', inputLabel: 'Alasan penolakan (opsional)', showCancelButton: true, confirmButtonText: '❌ Tolak!', confirmButtonColor: '#dc2626' });
+            if (!isConfirmed) return;
+            const r = await fetch(`/api/admin/withdrawals/${id}/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ admin_note: note || '' }) });
+            const d = await r.json();
+            if (d.success) { Swal.fire({ icon: 'success', title: 'Ditolak & saldo dikembalikan!', timer: 1500, showConfirmButton: false }); loadKeuangan(); }
+            else Swal.fire('Gagal', d.message, 'error');
+        }
+
+        // ── SETTINGS ─────────────────────────────────
+        async function loadSettings() {
+            try {
+                const res = await fetch('/api/admin/settings', { headers: { 'Authorization': 'Bearer ' + token } });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.min_withdraw !== undefined) document.getElementById('s_minWd').value = data.min_withdraw;
+                if (data.price_per_msg !== undefined) document.getElementById('s_rate').value = data.price_per_msg;
+                if (data.wa_support !== undefined) document.getElementById('s_waSupport').value = data.wa_support;
+                if (data.maintenance_mode !== undefined) document.getElementById('s_maintenance').checked = data.maintenance_mode === '1';
+            } catch (e) { console.error('Gagal load settings:', e); }
+        }
+
+        async function saveSettings() {
+            const min_withdraw = parseInt(document.getElementById('s_minWd').value);
+            const price_per_msg = parseInt(document.getElementById('s_rate').value);
+            const wa_support = document.getElementById('s_waSupport').value.trim();
+            const maintenance_mode = document.getElementById('s_maintenance').checked ? '1' : '0';
+
+            if (isNaN(min_withdraw) || min_withdraw < 1000)
+                return Swal.fire({ icon: 'warning', title: 'Input Salah', text: 'Minimal WD harus minimal Rp 1.000' });
+            if (isNaN(price_per_msg) || price_per_msg < 1)
+                return Swal.fire({ icon: 'warning', title: 'Input Salah', text: 'Tarif per pesan harus lebih dari 0' });
+
+            try {
+                const res = await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ min_withdraw, price_per_msg, wa_support, maintenance_mode })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Tersimpan!', text: data.message, timer: 2000, showConfirmButton: false });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.error || 'Gagal simpan settings' });
+                }
+            } catch (e) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal koneksi ke server' });
+            }
+        }
+    </script>
+</body>
+
+</html>

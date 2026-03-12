@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SEWA BADAK - Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            background: #f1f5f9;
+            font-family: system-ui, sans-serif;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat-number {
+            transition: all 0.4s ease;
+        }
+
+        .stat-bump {
+            transform: scale(1.15);
+            color: #10b981 !important;
+        }
+
+        #qrModal {
+            background: rgba(0, 0, 0, 0.85);
+        }
+
+        #qrContainer img {
+            margin: 0 auto;
+            border: 8px solid white;
+        }
+
+        .page-tab {
+            display: none;
+        }
+
+        .page-tab.active {
+            display: block;
+        }
+
+        .nav-tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13px;
+            transition: all .2s;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .nav-tab-btn.active {
+            background: white;
+            color: #10b981;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .10);
+        }
+
+        .nav-tab-btn:not(.active):hover {
+            background: rgba(255, 255, 255, .6);
+            color: #374151;
+        }
+
+        .wd-item {
+            border-left: 4px solid #e5e7eb;
+        }
+
+        .wd-item.pending {
+            border-left-color: #f59e0b;
+        }
+
+        .wd-item.approved {
+            border-left-color: #10b981;
+        }
+
+        .wd-item.rejected {
+            border-left-color: #ef4444;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+    <!-- HEADER -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center gap-4">
+            <div class="flex items-center gap-3 shrink-0">
+                <div
+                    class="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-sm">
+                    WA</div>
+                <div class="hidden sm:block">
+                    <h1 class="text-base font-black text-gray-800 leading-none">SEWA BADAK</h1>
+                    <p class="text-[10px] text-gray-400">Manager</p>
+                </div>
+            </div>
+            <!-- TAB NAV -->
+            <div class="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+                <button onclick="switchPage('dashboard')" id="nav-dashboard" class="nav-tab-btn active">
+                    <i class="fas fa-tachometer-alt"></i><span class="hidden sm:inline">Dashboard</span>
+                </button>
+                <button onclick="switchPage('withdrawal')" id="nav-withdrawal" class="nav-tab-btn relative">
+                    <i class="fas fa-money-bill-wave"></i><span class="hidden sm:inline">Withdrawal</span>
+                    <span id="wdPendingBadge"
+                        class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">!</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="text-right hidden sm:block">
+                    <p class="text-[10px] text-gray-400">Halo,</p>
+                    <p id="userName" class="text-sm font-bold text-emerald-600 leading-none">...</p>
+                </div>
+                <button onclick="logout()"
+                    class="bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-600 transition flex items-center gap-1.5">
+                    <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline">Logout</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- ══════════════════════════════════ -->
+        <!-- PAGE: DASHBOARD                   -->
+        <!-- ══════════════════════════════════ -->
+        <div id="page-dashboard" class="page-tab active">
+
+            <!-- STATS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-xl border border-blue-100 shadow-sm flex justify-between items-center cursor-pointer hover:shadow-md transition group"
+                    onclick="switchPage('withdrawal')">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Balance</p>
+                        <h2 id="balanceAmount" class="text-2xl font-black text-blue-600 stat-number">Rp 0</h2>
+                        <p class="text-[10px] text-blue-400 mt-0.5 group-hover:text-blue-600 transition">Klik → Tarik
+                            Saldo ↗</p>
+                    </div>
+                    <div class="text-blue-200 text-3xl group-hover:text-blue-400 transition"><i
+                            class="fas fa-wallet"></i></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border shadow-sm">
+                    <h3 id="waStatus" class="text-xl font-bold text-emerald-600">Connected</h3>
+                    <p id="waDetail" class="text-xs text-gray-500 mt-1">0 Perangkat Aktif</p>
+                </div>
+                <div class="card p-5 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">DB Pending</p>
+                        <h2 id="dbCountNumber" class="text-3xl font-black text-slate-800 stat-number">0</h2>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Belum di-blast</p>
+                    </div>
+                    <div class="text-amber-400 text-3xl opacity-60"><i class="fas fa-database"></i></div>
+                </div>
+                <div
+                    class="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Terkirim</p>
+                        <h2 id="totalSentAll" class="text-3xl font-black text-slate-800 stat-number">0</h2>
+                        <p id="estimasiRp" class="text-emerald-500 text-[10px] font-bold mt-0.5">Estimasi: Rp 0</p>
+                    </div>
+                    <div class="bg-emerald-50 p-3 rounded-full text-emerald-500 text-2xl"><i
+                            class="fas fa-paper-plane"></i></div>
+                </div>
+            </div>
+
+            <!-- BLAST PANEL -->
+            <div class="card p-6 mb-6">
+                <h3 class="text-lg font-bold mb-5 flex items-center gap-2"><i class="fas fa-rocket text-orange-500"></i>
+                    Blast Panel</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Kecepatan Kirim</label>
+                        <select id="blastSpeed"
+                            class="w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-300">
+                            <option value="1000">⚡ VERY FAST (1s)</option>
+                            <option value="3000" selected>🚀 FAST (3s)</option>
+                            <option value="7000">⚙️ MEDIUM (7s)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Limit Kirim <span
+                                class="text-gray-400 font-normal">(kosong = semua)</span></label>
+                        <input id="blastLimit" type="number" min="1" placeholder="Semua kontak"
+                            class="w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-300">
+                    </div>
+                    <div>
+                        <button onclick="startBlast()"
+                            class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-100 transition">
+                            <i class="fas fa-rocket"></i> Jalankan Blast
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WA LIST -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold flex items-center gap-2"><i class="fab fa-whatsapp text-green-500"></i>
+                        WhatsApp Terhubung</h3>
+                    <button onclick="connectWA()"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 font-bold transition text-sm">
+                        <i class="fas fa-plus"></i> Tambah Akun
+                    </button>
+                </div>
+                <div id="waList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <p class="text-center text-gray-400 py-10 col-span-3">Memuat data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════ -->
+        <!-- PAGE: WITHDRAWAL                  -->
+        <!-- ══════════════════════════════════ -->
+        <div id="page-withdrawal" class="page-tab">
+
+            <div class="mb-6">
+                <h2 class="text-2xl font-black text-gray-800">Tarik Saldo</h2>
+                <p class="text-gray-400 text-sm mt-0.5">Cairkan penghasilan blast ke rekening kamu</p>
+            </div>
+
+            <!-- Balance Hero -->
+            <div
+                class="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-600 rounded-2xl p-6 mb-6 text-white shadow-xl shadow-emerald-100">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8">
+                </div>
+                <div class="absolute bottom-0 left-20 w-20 h-20 bg-white/5 rounded-full translate-y-8"></div>
+                <div class="relative flex justify-between items-start">
+                    <div>
+                        <p class="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-2">Saldo Tersedia</p>
+                        <h2 id="withdrawBalance" class="text-5xl font-black tracking-tight">Rp 0</h2>
+                        <div class="flex items-center gap-2 mt-3">
+                            <span id="ratePerMsgBadge"
+                                class="bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                                <i class="fas fa-bolt mr-1"></i>+Rp 800 / pesan
+                            </span>
+                        </div>
+                    </div>
+                    <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-wallet text-3xl text-white/80"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+                <!-- Form Ajukan -->
+                <div class="lg:col-span-2">
+                    <div class="card p-6 sticky top-20">
+                        <h3 class="font-black text-gray-800 mb-5 flex items-center gap-2">
+                            <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-paper-plane text-emerald-500 text-sm"></i>
+                            </div>
+                            Ajukan Penarikan
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Jumlah
+                                    Penarikan</label>
+                                <div class="relative">
+                                    <span
+                                        class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
+                                    <input id="wdAmount" type="number" min="10000" placeholder="0"
+                                        class="w-full border-2 border-gray-100 bg-gray-50 rounded-xl pl-11 pr-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-400 focus:bg-white transition">
+                                </div>
+                                <p id="minWdHint" class="text-xs text-gray-400 mt-1">Minimal Rp 10.000</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Bank
+                                    / E-Wallet</label>
+                                <select id="wdBank"
+                                    class="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-emerald-400 focus:bg-white transition">
+                                    <option value="">— Pilih —</option>
+                                    <optgroup label="Bank">
+                                        <option>BCA</option>
+                                        <option>BRI</option>
+                                        <option>BNI</option>
+                                        <option>Mandiri</option>
+                                        <option>BSI</option>
+                                        <option>CIMB Niaga</option>
+                                    </optgroup>
+                                    <optgroup label="E-Wallet">
+                                        <option>DANA</option>
+                                        <option>OVO</option>
+                                        <option>GoPay</option>
+                                        <option>ShopeePay</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">No.
+                                    Rekening / Akun</label>
+                                <input id="wdAccountNumber" type="text" placeholder="Contoh: 1234567890"
+                                    class="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-emerald-400 focus:bg-white transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nama
+                                    Pemilik Rekening</label>
+                                <input id="wdAccountName" type="text" placeholder="Sesuai data rekening"
+                                    class="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-emerald-400 focus:bg-white transition">
+                            </div>
+                            <button onclick="submitWithdrawal()"
+                                class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white py-3.5 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-100 mt-2">
+                                <i class="fas fa-paper-plane"></i> Ajukan Penarikan
+                            </button>
+                        </div>
+
+                        <!-- Ketentuan singkat -->
+                        <div class="mt-5 pt-5 border-t border-gray-100">
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Ketentuan</p>
+                            <ul class="space-y-2 text-xs text-gray-500">
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400 w-3"></i>
+                                    Min. <span id="minWdKetentuan">Rp 10.000</span> per penarikan</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400 w-3"></i>
+                                    Saldo dipotong saat pengajuan</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400 w-3"></i>
+                                    Proses 1×24 jam kerja</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-undo text-amber-400 w-3"></i>
+                                    Ditolak → saldo kembali otomatis</li>
+                                <li class="flex items-center gap-2"><i
+                                        class="fas fa-hourglass-half text-blue-400 w-3"></i> 1 pengajuan pending per
+                                    waktu</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Riwayat -->
+                <div class="lg:col-span-3">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-5">
+                            <h3 class="font-black text-gray-800 flex items-center gap-2">
+                                <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-history text-gray-400 text-sm"></i>
+                                </div>
+                                Riwayat Penarikan
+                            </h3>
+                            <button onclick="loadWithdrawHistory()"
+                                class="text-xs text-emerald-600 hover:underline flex items-center gap-1">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="withdrawHistoryList">
+                            <div class="flex flex-col items-center py-12 text-gray-200">
+                                <i class="fas fa-receipt text-5xl mb-3"></i>
+                                <p class="text-sm text-gray-400">Belum ada riwayat withdrawal</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- QR MODAL -->
+    <div id="qrModal" class="fixed inset-0 hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <h3 class="text-xl font-bold mb-2">Scan QR Code</h3>
+            <p class="text-sm text-gray-500 mb-4">Buka WhatsApp → Perangkat Tertaut → Tautkan Perangkat</p>
+            <div id="qrContainer"
+                class="flex justify-center mb-4 min-h-[250px] items-center border rounded-lg bg-gray-50">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+            </div>
+            <button onclick="closeQRModal()"
+                class="w-full bg-gray-200 py-2 rounded-lg font-bold hover:bg-gray-300">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'login.html';
+
+        let qrInterval = null, currentSessionId = null, prevTotalSent = 0;
+
+        // ── TABS ──────────────────────────────────────
+        function switchPage(page) {
+            document.querySelectorAll('.page-tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            document.getElementById('nav-' + page).classList.add('active');
+            if (page === 'withdrawal') { checkStatus(); loadWithdrawHistory(); }
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
+        function animateBump(id) { const el = document.getElementById(id); if (!el) return; el.classList.add('stat-bump'); setTimeout(() => el.classList.remove('stat-bump'), 400); }
+        const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+        // ── GLOBAL SETTINGS ───────────────────────────
+        let appSettings = { price_per_msg: 800, min_withdraw: 10000 };
+        async function loadAppSettings() {
+            try {
+                const r = await fetch('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } });
+                if (!r.ok) return;
+                const data = await r.json();
+                if (data.price_per_msg) appSettings.price_per_msg = parseInt(data.price_per_msg) || 800;
+                if (data.min_withdraw) appSettings.min_withdraw = parseInt(data.min_withdraw) || 10000;
+                const rateEl = document.getElementById('ratePerMsgBadge');
+                if (rateEl) rateEl.innerHTML = `<i class="fas fa-bolt mr-1"></i>+Rp ${appSettings.price_per_msg.toLocaleString('id-ID')} / pesan`;
+                const minHint = document.getElementById('minWdHint');
+                if (minHint) minHint.innerText = `Minimal Rp ${appSettings.min_withdraw.toLocaleString('id-ID')}`;
+                const minKetentuan = document.getElementById('minWdKetentuan');
+                if (minKetentuan) minKetentuan.innerText = `Rp ${appSettings.min_withdraw.toLocaleString('id-ID')}`;
+                const wdAmountEl = document.getElementById('wdAmount');
+                if (wdAmountEl) wdAmountEl.min = appSettings.min_withdraw;
+            } catch (e) { console.error('Gagal load settings:', e); }
+        }
+
+        // ── QR & WA ──────────────────────────────────
+        function renderQRCode(text) { const c = document.getElementById('qrContainer'); c.innerHTML = ''; try { new QRCode(c, { text, width: 250, height: 250, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M }); } catch (e) { } }
+        async function connectWA() {
+            document.getElementById('qrContainer').innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>';
+            document.getElementById('qrModal').classList.remove('hidden'); currentSessionId = null; if (qrInterval) clearInterval(qrInterval);
+            qrInterval = setInterval(async () => { try { const url = currentSessionId ? `/api/wa/connect?sid=${currentSessionId}` : '/api/wa/connect'; const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } }); const d = await r.json(); currentSessionId = d.sessionId; if (d.status === 'connected') { clearInterval(qrInterval); closeQRModal(); Swal.fire('Berhasil!', 'WhatsApp baru terhubung!', 'success'); checkStatus(); } else if (d.qr) renderQRCode(d.qr); } catch (e) { } }, 3000);
+        }
+        function closeQRModal() { document.getElementById('qrModal').classList.add('hidden'); clearInterval(qrInterval); }
+
+        // ── STATUS ────────────────────────────────────
+        async function checkStatus() {
+            try {
+                const r = await fetch('/api/wa/status', { headers: { Authorization: `Bearer ${token}` } }); const data = await r.json();
+                if (data.balance !== undefined) { const fmt = `Rp ${Number(data.balance).toLocaleString('id-ID')}`; document.getElementById('balanceAmount').innerText = fmt; document.getElementById('withdrawBalance').innerText = fmt; }
+                if (data.dbCount !== undefined) document.getElementById('dbCountNumber').innerText = data.dbCount.toLocaleString('id-ID');
+                if (data.totalSent !== undefined) { const v = data.totalSent; if (v > prevTotalSent) animateBump('totalSentAll'); prevTotalSent = v; document.getElementById('totalSentAll').innerText = v.toLocaleString('id-ID'); document.getElementById('estimasiRp').innerText = `Estimasi: Rp ${(v * appSettings.price_per_msg).toLocaleString('id-ID')}`; }
+                const waEl = document.getElementById('waStatus'); waEl.innerText = data.status === 'connected' ? 'Connected' : 'Disconnected'; waEl.className = `text-xl font-bold ${data.status === 'connected' ? 'text-emerald-600' : 'text-red-500'}`;
+                document.getElementById('waDetail').innerText = `${data.totalConnected || 0} Aktif dari ${(data.sessions || []).length} Terdaftar`;
+                const listEl = document.getElementById('waList');
+                if (!data.sessions || !data.sessions.length) { listEl.innerHTML = '<p class="text-center text-gray-400 py-10 col-span-3">Belum ada perangkat terhubung.</p>'; return; }
+                listEl.innerHTML = '';
+                data.sessions.forEach(s => { const ok = s.status === 'connected'; listEl.innerHTML += `<div class="card p-4 border-l-4 ${ok ? 'border-emerald-500' : 'border-amber-400'} hover:shadow-md transition-shadow"><div class="flex justify-between items-start mb-3"><div class="flex items-center gap-3"><div class="w-11 h-11 ${ok ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'} rounded-full flex items-center justify-center text-xl"><i class="fab fa-whatsapp"></i></div><div><h4 class="font-bold text-slate-800 text-sm">${s.phone_number || 'Menghubungkan...'}</h4><span class="text-[10px] ${ok ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-2 py-0.5 rounded-full font-bold uppercase">${s.status}</span></div></div><button onclick="logoutWA('${s.session_id}')" class="text-gray-300 hover:text-red-500 p-1 transition"><i class="fas fa-trash text-sm"></i></button></div><div class="grid grid-cols-2 gap-2"><div class="bg-amber-50 p-2 rounded-lg border border-amber-100 text-center"><p class="text-[9px] uppercase font-bold text-amber-400">Pending</p><p class="text-xl font-black text-amber-600">${data.dbCount || 0}</p></div><div class="bg-emerald-50 p-2 rounded-lg border border-emerald-100 text-center"><p class="text-[9px] uppercase font-bold text-emerald-400">Terkirim</p><p class="text-xl font-black text-emerald-600">${s.sent_count || 0}</p></div></div></div>`; });
+            } catch (e) { console.error(e); }
+        }
+        async function logoutWA(sessionId) { const { isConfirmed } = await Swal.fire({ title: 'Putuskan WhatsApp?', text: 'Sesi dihapus permanen.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Putuskan' }); if (!isConfirmed) return; const r = await fetch('/api/wa/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sessionId }) }); const d = await r.json(); if (d.success) { Swal.fire('Terputus!', d.message, 'success'); checkStatus(); } else Swal.fire('Error', d.message, 'error'); }
+
+        // ── BLAST ─────────────────────────────────────
+        async function startBlast() {
+            const speed = document.getElementById('blastSpeed').value, limit = document.getElementById('blastLimit').value;
+            const dbCount = parseInt(document.getElementById('dbCountNumber').innerText.replace(/\D/g, '')) || 0;
+            if (dbCount === 0) return Swal.fire({ icon: 'warning', title: 'DB Kosong', text: 'Tidak ada kontak pending!' });
+
+            const hasLimit = limit && parseInt(limit) > 0;
+            const targetCount = hasLimit ? Math.min(parseInt(limit), dbCount) : dbCount;
+            const limitLabel = hasLimit ? `${targetCount} kontak` : `Semua (${dbCount} kontak)`;
+            const estimasi = hasLimit
+                ? `Rp ${(targetCount * appSettings.price_per_msg).toLocaleString('id-ID')}`
+                : `Rp ${(dbCount * appSettings.price_per_msg).toLocaleString('id-ID')} (maks)`;
+
+            const { isConfirmed } = await Swal.fire({
+                icon: 'question', title: 'Konfirmasi Blast',
+                html: `<div class="text-left space-y-2 text-sm">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-amber-50 rounded-lg p-3 border border-amber-100 text-center">
+                            <p class="text-xs text-amber-500 font-bold">Target</p>
+                            <p class="text-xl font-black text-amber-600">${limitLabel}</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-3 border border-blue-100 text-center">
+                            <p class="text-xs text-blue-500 font-bold">Estimasi</p>
+                            <p class="text-lg font-black text-blue-600">${estimasi}</p>
+                        </div>
+                    </div>
+                    ${!hasLimit ? `<p class="text-xs text-amber-600 bg-amber-50 rounded-lg p-2 text-center"><i class="fas fa-info-circle mr-1"></i>Blast berjalan sampai WA disconnect atau semua kontak terkirim.</p>` : ''}
+                </div>`,
+                showCancelButton: true, confirmButtonText: '🚀 GAS BLAST!',
+                confirmButtonColor: '#f59e0b', cancelButtonText: 'Batal'
+            });
+            if (!isConfirmed) return;
+            Swal.fire({ title: 'Blast Berjalan...', text: 'Proses di background. Jangan tutup browser!', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                const res = await fetch('/api/wa/blast', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ limit: hasLimit ? parseInt(limit) : null, delay: speed }) });
+                const data = await res.json();
+                if (data.success) { Swal.fire({ icon: 'success', title: 'Blast Dimulai!', text: `Blast dimulai ke ${data.total || targetCount} nomor.`, timer: 3000, showConfirmButton: false }); const ref = setInterval(checkStatus, 5000); setTimeout(() => clearInterval(ref), (targetCount * parseInt(speed)) + 15000); checkStatus(); }
+                else Swal.fire('Gagal', data.message, 'error');
+            } catch (e) { Swal.fire('Error', 'Koneksi server terputus.', 'error'); }
+        }
+
+        // ── WITHDRAWAL ────────────────────────────────
+        async function loadWithdrawHistory() {
+            const list = document.getElementById('withdrawHistoryList');
+            list.innerHTML = `<div class="flex justify-center py-8"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500"></div></div>`;
+            try {
+                const r = await fetch('/api/withdrawal/history', { headers: { Authorization: `Bearer ${token}` } });
+                const data = await r.json();
+                const pending = (Array.isArray(data) ? data : []).filter(w => w.status === 'pending').length;
+                const badge = document.getElementById('wdPendingBadge');
+                if (pending > 0) { badge.classList.remove('hidden'); badge.innerText = pending; } else badge.classList.add('hidden');
+                if (!Array.isArray(data) || !data.length) { list.innerHTML = `<div class="flex flex-col items-center py-12 text-gray-200"><i class="fas fa-receipt text-5xl mb-3"></i><p class="text-sm text-gray-400">Belum ada riwayat withdrawal</p></div>`; return; }
+                const statusMap = { pending: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600', icon: 'fa-clock', label: 'Menunggu' }, approved: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600', icon: 'fa-check-circle', label: 'Disetujui' }, rejected: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-500', icon: 'fa-times-circle', label: 'Ditolak' } };
+                list.innerHTML = data.map(w => {
+                    const s = statusMap[w.status] || statusMap.pending;
+                    const d = new Date(w.created_at);
+                    const dateStr = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    return `<div class="wd-item ${w.status} rounded-xl p-4 mb-3 bg-white border border-gray-100 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-black text-gray-800 text-xl">Rp ${Number(w.amount).toLocaleString('id-ID')}</p>
+                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full"><i class="fas fa-university text-[10px]"></i> ${esc(w.bank_name)}</span>
+                                <span class="font-mono text-xs text-gray-500">${esc(w.account_number)}</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">${esc(w.account_name)} · ${dateStr}</p>
+                            ${w.admin_note ? `<div class="mt-2 bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-500 flex items-start gap-1.5"><i class="fas fa-comment-dots text-gray-300 mt-0.5 shrink-0"></i><span>"${esc(w.admin_note)}"</span></div>` : ''}
+                        </div>
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border shrink-0 ${s.bg} ${s.border} ${s.text}">
+                            <i class="fas ${s.icon}"></i> ${s.label}
+                        </span>
+                    </div>
+                </div>`;
+                }).join('');
+            } catch (e) { list.innerHTML = `<p class="text-red-400 text-sm text-center py-6">Gagal memuat riwayat.</p>`; }
+        }
+
+        async function submitWithdrawal() {
+            const amount = parseInt(document.getElementById('wdAmount').value);
+            const bank_name = document.getElementById('wdBank').value;
+            const account_number = document.getElementById('wdAccountNumber').value.trim();
+            const account_name = document.getElementById('wdAccountName').value.trim();
+            if (!amount || amount < appSettings.min_withdraw) return Swal.fire('Oops', `Minimal withdrawal Rp ${appSettings.min_withdraw.toLocaleString('id-ID')}!`, 'warning');
+            if (!bank_name) return Swal.fire('Oops', 'Pilih bank terlebih dahulu!', 'warning');
+            if (!account_number) return Swal.fire('Oops', 'Nomor rekening wajib diisi!', 'warning');
+            if (!account_name) return Swal.fire('Oops', 'Nama pemilik rekening wajib diisi!', 'warning');
+            const { isConfirmed } = await Swal.fire({ title: 'Konfirmasi Penarikan', html: `<div class="text-left text-sm space-y-2"><div class="bg-gray-50 rounded-xl p-4 space-y-2"><div class="flex justify-between"><span class="text-gray-400">Jumlah</span><span class="font-black text-emerald-600 text-base">Rp ${amount.toLocaleString('id-ID')}</span></div><div class="flex justify-between"><span class="text-gray-400">Bank</span><span class="font-semibold">${bank_name}</span></div><div class="flex justify-between"><span class="text-gray-400">Rekening</span><span class="font-mono font-semibold">${account_number}</span></div><div class="flex justify-between"><span class="text-gray-400">Atas Nama</span><span class="font-semibold">${account_name}</span></div></div><p class="text-amber-500 text-xs text-center bg-amber-50 py-2 rounded-lg"><i class="fas fa-exclamation-circle mr-1"></i>Saldo dipotong segera setelah pengajuan.</p></div>`, icon: 'question', showCancelButton: true, confirmButtonText: '<i class="fas fa-paper-plane mr-1"></i> Ya, Ajukan!', confirmButtonColor: '#10b981', cancelButtonText: 'Batal' });
+            if (!isConfirmed) return;
+            try {
+                const r = await fetch('/api/withdrawal/request', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, bank_name, account_number, account_name }) });
+                const data = await r.json();
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Pengajuan Terkirim!', text: data.message, timer: 2500, showConfirmButton: false });
+                    ['wdAmount', 'wdAccountNumber', 'wdAccountName'].forEach(id => document.getElementById(id).value = '');
+                    document.getElementById('wdBank').value = '';
+                    checkStatus(); loadWithdrawHistory();
+                } else { Swal.fire('Gagal', data.message, 'error'); }
+            } catch (e) { Swal.fire('Error', 'Koneksi server terputus.', 'error'); }
+        }
+
+        // ── INIT ──────────────────────────────────────
+        async function loadUserData() {
+            try {
+                const r = await fetch('/api/user/profile', { headers: { Authorization: `Bearer ${token}` } });
+                if (r.status === 401 || r.status === 403) { logout(); return; }
+                const d = await r.json();
+                document.getElementById('userName').innerText = d.username;
+                const fmt = `Rp ${(d.balance || 0).toLocaleString('id-ID')}`;
+                document.getElementById('balanceAmount').innerText = fmt;
+                document.getElementById('withdrawBalance').innerText = fmt;
+            } catch (e) { console.error(e); }
+        }
+
+        loadUserData(); loadAppSettings(); checkStatus();
+        setInterval(checkStatus, 15000);
+    </script>
+</body>
+
+</html>
