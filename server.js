@@ -25,6 +25,7 @@ app.use('/api/templates', require('./routes/template.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/withdrawal', require('./routes/withdrawal.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
+app.use('/api/settings', require('./routes/settings.routes'));
 
 // Init DB settings & restore sessions WA
 initSettingsTable().catch(console.error);

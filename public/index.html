@@ -399,7 +399,7 @@
         let appSettings = { price_per_msg: 800, min_withdraw: 10000 };
         async function loadAppSettings() {
             try {
-                const r = await fetch('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } });
+                const r = await fetch('/api/settings', { headers: { Authorization: `Bearer ${token}` } });
                 if (!r.ok) return;
                 const data = await r.json();
                 if (data.price_per_msg) appSettings.price_per_msg = parseInt(data.price_per_msg) || 800;
