@@ -63,10 +63,12 @@ const deleteMultiple = async (req, res) => {
     try {
         const { ids } = req.body;
         if (!ids || ids.length === 0) return res.status(400).json({ message: 'Tidak ada ID' });
+        const safeIds = ids.map(id => parseInt(id)).filter(id => !isNaN(id));
+        if (safeIds.length === 0) return res.status(400).json({ message: 'ID tidak valid' });
         if (req.user.role === 'admin') {
-            await mysql.query(`DELETE FROM contacts WHERE id IN (?) AND status = 'pending'`, [ids]);
+            await mysql.query(`DELETE FROM contacts WHERE id IN (?) AND status = 'pending'`, [safeIds]);
         } else {
-            await mysql.query(`DELETE FROM contacts WHERE id IN (?) AND user_id = ? AND status = 'pending'`, [ids, req.user.id]);
+            await mysql.query(`DELETE FROM contacts WHERE id IN (?) AND user_id = ? AND status = 'pending'`, [safeIds, req.user.id]);
         }
         res.json({ success: true });
     } catch (err) {
@@ -89,13 +91,15 @@ const deleteAll = async (req, res) => {
 
 const deleteOne = async (req, res) => {
     try {
-        const [rows] = await mysql.query(`SELECT status, user_id FROM contacts WHERE id = ?`, [req.params.id]);
+        const contactId = parseInt(req.params.id);
+        if (!contactId) return res.status(400).json({ success: false, message: 'ID tidak valid' });
+        const [rows] = await mysql.query(`SELECT status, user_id FROM contacts WHERE id = ?`, [contactId]);
         if (rows.length === 0) return res.status(404).json({ success: false, message: 'Tidak ditemukan' });
         if (rows[0].status === 'sent') return res.status(403).json({ success: false, message: 'Kontak yang sudah di-blast tidak dapat dihapus!' });
         if (req.user.role !== 'admin' && rows[0].user_id !== req.user.id) {
             return res.status(403).json({ success: false, message: 'Tidak diizinkan!' });
         }
-        await mysql.query(`DELETE FROM contacts WHERE id = ? AND status = 'pending'`, [req.params.id]);
+        await mysql.query(`DELETE FROM contacts WHERE id = ? AND status = 'pending'`, [contactId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

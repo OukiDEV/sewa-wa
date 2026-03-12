@@ -1698,7 +1698,7 @@
         }
         function toggleSelectAll() { const m = document.getElementById('selectAll'); document.querySelectorAll('.cb-contact:not([disabled])').forEach(c => c.checked = m.checked); updateBulkBtn(); }
         async function deleteSelected() {
-            const ids = Array.from(document.querySelectorAll('.cb-contact:checked')).map(c => c.value);
+            const ids = Array.from(document.querySelectorAll('.cb-contact:checked')).map(c => parseInt(c.value));
             const { isConfirmed } = await Swal.fire({ title: `Hapus ${ids.length} kontak?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus!' });
             if (!isConfirmed) return;
             await fetch('/api/contacts/delete-multiple', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ ids }) });
@@ -1743,7 +1743,7 @@
         async function clearAllPending() {
             const { isConfirmed } = await Swal.fire({ title: 'Hapus semua pending?', text: 'Kontak yang sudah di-blast tetap aman.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus Semua!' });
             if (!isConfirmed) return;
-            await fetch('/api/contacts-all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            await fetch('/api/contacts/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
             Swal.fire({ icon: 'success', title: 'Bersih!', timer: 1500, showConfirmButton: false });
             loadContacts('pending');
         }
