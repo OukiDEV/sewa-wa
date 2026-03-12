@@ -995,6 +995,25 @@
                             </tr>
                         </tbody>
                     </table>
+                    <!-- Pagination -->
+                    <div id="paginationBar"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #f1f5f9;flex-wrap:wrap;gap:8px">
+                        <span id="paginationInfo" style="font-size:12px;color:#64748b"></span>
+                        <div style="display:flex;gap:6px;align-items:center">
+                            <button id="btnPrevPage" onclick="changePage(-1)"
+                                style="padding:4px 12px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px">←
+                                Prev</button>
+                            <span id="paginationPages" style="font-size:12px;color:#334155;font-weight:600"></span>
+                            <button id="btnNextPage" onclick="changePage(1)"
+                                style="padding:4px 12px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px">Next
+                                →</button>
+                        </div>
+                        <select id="pageLimitSelect" onchange="changeLimit()"
+                            style="padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;font-size:12px">
+                            <option value="100">100 / hal</option>
+                            <option value="200">200 / hal</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -1615,8 +1634,15 @@
 
         // ── CONTACTS ─────────────────────────────────
         let currentStatus = 'pending';
-        async function loadContacts(status = 'pending') {
+        let currentPage = 1;
+        let currentLimit = 100;
+        let totalPages = 1;
+
+        async function loadContacts(status = 'pending', page = 1) {
+            if (status !== currentStatus) { page = 1; currentPage = 1; }
             currentStatus = status;
+            currentPage = page;
+            const limit = currentLimit;
             const tbody = document.getElementById('contactsBody');
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px"><i class="fas fa-spinner fa-spin"></i></td></tr>`;
             document.getElementById('btnPending').style.background = status === 'pending' ? '#0ea5e9' : '#f1f5f9';
@@ -1624,9 +1650,21 @@
             document.getElementById('btnSent').style.background = status === 'sent' ? '#0ea5e9' : '#f1f5f9';
             document.getElementById('btnSent').style.color = status === 'sent' ? '#fff' : '#64748b';
             try {
-                const r = await fetch(`/api/contacts?status=${status}`, { headers: { Authorization: `Bearer ${token}` } });
-                const data = await r.json();
-                document.getElementById('contactCount').innerText = `${data.length} kontak`;
+                const r = await fetch(`/api/contacts?status=${status}&page=${page}&limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } });
+                const res = await r.json();
+                const data = res.data || [];
+                totalPages = res.totalPages || 1;
+                const total = res.total || 0;
+
+                // Update info
+                document.getElementById('contactCount').innerText = `${total.toLocaleString('id-ID')} kontak`;
+                const start = (page - 1) * limit + 1;
+                const end = Math.min(page * limit, total);
+                document.getElementById('paginationInfo').innerText = total > 0 ? `Menampilkan ${start.toLocaleString('id-ID')}–${end.toLocaleString('id-ID')} dari ${total.toLocaleString('id-ID')}` : '';
+                document.getElementById('paginationPages').innerText = `Hal ${page} / ${totalPages}`;
+                document.getElementById('btnPrevPage').disabled = page <= 1;
+                document.getElementById('btnNextPage').disabled = page >= totalPages;
+
                 if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:32px">Tidak ada kontak ${status}.</td></tr>`; return; }
                 const isSent = status === 'sent';
                 tbody.innerHTML = data.map(c => {
@@ -1640,6 +1678,16 @@
       </tr>`;
                 }).join('');
             } catch (e) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:32px">Gagal memuat.</td></tr>`; }
+        }
+
+        function changePage(dir) {
+            const next = currentPage + dir;
+            if (next < 1 || next > totalPages) return;
+            loadContacts(currentStatus, next);
+        }
+        function changeLimit() {
+            currentLimit = parseInt(document.getElementById('pageLimitSelect').value) || 100;
+            loadContacts(currentStatus, 1);
         }
 
         function updateBulkBtn() {
@@ -1676,10 +1724,21 @@
             if (!raw) return Swal.fire('Error', 'Data kosong!', 'error');
             const contacts = raw.split('\n').map(l => { const [n, p] = l.split(','); return { name: n?.trim(), phone: p?.trim() }; }).filter(c => c.name && c.phone);
             if (!contacts.length) return Swal.fire('Error', 'Format salah. Gunakan: Nama,Nomor', 'error');
-            Swal.fire({ title: `Mengimpor ${contacts.length} kontak...`, didOpen: () => Swal.showLoading() });
-            const r = await fetch('/api/contacts/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ contacts }) });
-            if (r.ok) { document.getElementById('bulkText').value = ''; Swal.fire('Berhasil!', `${contacts.length} kontak diimport.`, 'success'); loadContacts('pending'); }
-            else Swal.fire('Gagal', 'Terjadi kesalahan.', 'error');
+            Swal.fire({ title: `Mengimpor ${contacts.length} kontak...`, html: 'Mohon tunggu...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+            const BATCH = 1000;
+            let imported = 0;
+            for (let i = 0; i < contacts.length; i += BATCH) {
+                const chunk = contacts.slice(i, i + BATCH);
+                const batchNum = Math.floor(i / BATCH) + 1;
+                const totalBatch = Math.ceil(contacts.length / BATCH);
+                Swal.update({ html: `Batch ${batchNum}/${totalBatch} (${imported}/${contacts.length} kontak)...` });
+                const r = await fetch('/api/contacts/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ contacts: chunk }) });
+                if (!r.ok) { Swal.fire('Gagal', `Terjadi kesalahan di batch ke-${batchNum}.`, 'error'); return; }
+                imported += chunk.length;
+            }
+            document.getElementById('bulkText').value = '';
+            Swal.fire('Berhasil!', `${imported} kontak berhasil diimport.`, 'success');
+            loadContacts('pending');
         }
         async function clearAllPending() {
             const { isConfirmed } = await Swal.fire({ title: 'Hapus semua pending?', text: 'Kontak yang sudah di-blast tetap aman.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus Semua!' });

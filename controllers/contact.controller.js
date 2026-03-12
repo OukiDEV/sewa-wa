@@ -1,5 +1,12 @@
 const mysql = require('../db');
 
+// Pastikan index ada — dipanggil sekali saat startup
+async function ensureIndexes() {
+    await mysql.query(`ALTER TABLE contacts ADD INDEX IF NOT EXISTS idx_status (status)`).catch(() => { });
+    await mysql.query(`ALTER TABLE contacts ADD INDEX IF NOT EXISTS idx_user_status (user_id, status)`).catch(() => { });
+}
+ensureIndexes();
+
 const addContact = async (req, res) => {
     const { name, phone } = req.body;
     try {
@@ -15,9 +22,18 @@ const addContact = async (req, res) => {
 
 const getContacts = async (req, res) => {
     const status = req.query.status || 'pending';
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
+    const offset = (page - 1) * limit;
     try {
-        const [rows] = await mysql.query(`SELECT * FROM contacts WHERE status = ? ORDER BY id DESC`, [status]);
-        res.json(rows);
+        const [[{ total }]] = await mysql.query(
+            `SELECT COUNT(*) as total FROM contacts WHERE status = ?`, [status]
+        );
+        const [rows] = await mysql.query(
+            `SELECT id, name, phone, status, sent_at FROM contacts WHERE status = ? ORDER BY id DESC LIMIT ? OFFSET ?`,
+            [status, limit, offset]
+        );
+        res.json({ data: rows, total, page, limit, totalPages: Math.ceil(total / limit) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -27,11 +43,19 @@ const bulkImport = async (req, res) => {
     try {
         const { contacts } = req.body;
         if (!contacts || contacts.length === 0) return res.status(400).json({ message: 'Data kosong' });
-        const values = contacts.map(c => [req.user.id, c.name, c.phone, req.user.role, 'pending']);
-        await mysql.query(`INSERT INTO contacts (user_id, name, phone, role, status) VALUES ?`, [values]);
-        res.json({ success: true, message: `${contacts.length} kontak berhasil diimpor.` });
+
+        const CHUNK = 1000;
+        let totalInserted = 0;
+        for (let i = 0; i < contacts.length; i += CHUNK) {
+            const chunk = contacts.slice(i, i + CHUNK);
+            const values = chunk.map(c => [req.user.id, c.name, c.phone, req.user.role, 'pending']);
+            await mysql.query(`INSERT INTO contacts (user_id, name, phone, role, status) VALUES ?`, [values]);
+            totalInserted += chunk.length;
+        }
+        res.json({ success: true, message: `${totalInserted} kontak berhasil diimpor.` });
     } catch (err) {
-        res.status(500).json({ message: 'Gagal bulk import' });
+        console.error('[BulkImport] Error:', err.message);
+        res.status(500).json({ message: 'Gagal bulk import: ' + err.message });
     }
 };
 
