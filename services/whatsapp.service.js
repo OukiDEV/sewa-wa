@@ -14,7 +14,7 @@ const sessions = {};
 const sessionStats = {};
 
 async function startWhatsApp(userId, sessionId) {
-    const sessionDir = `./sessions/${sessionId}`;
+    const sessionDir = `/app/sessions/${sessionId}`;
     if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
     if (!sessionStats[sessionId]) sessionStats[sessionId] = { sent: 0, failed: 0 };
 
