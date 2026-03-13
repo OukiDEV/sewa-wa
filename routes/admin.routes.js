@@ -3,7 +3,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth.middlewa
 const {
     getUsersOnline, getAllUsers, getUsersBalance,
     updateUserRate, toggleBan, resetBalance,
-    getAllSessions, getSettings, updateSettings, getMessageStats
+    getAllSessions, getSettings, updateSettings
 } = require('../controllers/admin.controller');
 const {
     adminGetAll, approve, reject, getStats
@@ -21,7 +21,6 @@ router.post('/users/:id/reset-balance', ...guard, resetBalance);
 
 // Sessions
 router.get('/all-sessions', ...guard, getAllSessions);
-router.get('/message-stats', ...guard, getMessageStats);
 
 // Settings
 router.get('/settings', ...guard, getSettings);
