@@ -1782,20 +1782,19 @@
                 confirmButtonColor: '#f59e0b', confirmButtonText: '📥 Export & Hapus!'
             });
             if (!isConfirmed) return;
-            Swal.fire({ title: 'Mengambil data...', didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'Mengexport...', didOpen: () => Swal.showLoading() });
 
-            let allContacts = [], page = 1;
-            while (true) {
-                const r = await fetch(`/api/contacts?status=pending&page=${page}&limit=200`, { headers: { Authorization: `Bearer ${token}` } });
-                const res = await r.json();
-                allContacts = allContacts.concat(res.data || []);
-                if (page >= res.totalPages) break;
-                page++;
-            }
+            // 1 request ke backend — query + delete + return file sekaligus
+            const r = await fetch('/api/contacts/export-pending', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
 
-            if (allContacts.length === 0) { Swal.fire('Info', 'Tidak ada kontak pending.', 'info'); return; }
+            if (!r.ok) { Swal.fire('Gagal', 'Terjadi error saat export', 'error'); return; }
 
-            const txt = allContacts.map(c => c.phone).join('\n');
+            const txt = await r.text();
+            if (!txt.trim()) { Swal.fire('Info', 'Tidak ada kontak pending.', 'info'); return; }
+
+            const count = txt.trim().split('\n').length;
             const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1804,8 +1803,7 @@
             a.click();
             URL.revokeObjectURL(url);
 
-            await fetch('/api/contacts-all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-            Swal.fire({ icon: 'success', title: `${allContacts.length} kontak di-export & dihapus!`, timer: 2500, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: `${count} kontak di-export & dihapus!`, timer: 2500, showConfirmButton: false });
             loadContacts('pending');
         }
 

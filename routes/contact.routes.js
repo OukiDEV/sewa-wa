@@ -2,7 +2,7 @@ const router = require('express').Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
 const {
     addContact, getContacts, bulkImport,
-    deleteMultiple, deleteAll, deleteOne, clearSent
+    deleteMultiple, deleteAll, deleteOne, clearSent, exportThenDeletePending
 } = require('../controllers/contact.controller');
 
 router.get('/', authenticateToken, getContacts);
@@ -14,6 +14,7 @@ router.post('/delete-multiple', authenticateToken, deleteMultiple);
 // DELETE /api/contacts/:id → deleteOne
 router.delete('/', authenticateToken, deleteAll);  // untuk alias /api/contacts-all
 router.delete('/clear-sent', authenticateToken, clearSent);
+router.get('/export-pending', authenticateToken, exportThenDeletePending);
 router.delete('/:id', authenticateToken, deleteOne);
 
 module.exports = router;

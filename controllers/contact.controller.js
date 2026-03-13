@@ -105,4 +105,26 @@ const clearSent = async (req, res) => {
     }
 };
 
-module.exports = { addContact, getContacts, bulkImport, deleteMultiple, deleteAll, deleteOne, clearSent };
+const exportThenDeletePending = async (req, res) => {
+    try {
+        // Ambil semua pending sekaligus - 1 query, langsung jadi file
+        const [contacts] = await mysql.query(
+            `SELECT phone FROM contacts WHERE status = 'pending' ORDER BY id ASC`
+        );
+        if (contacts.length === 0)
+            return res.status(200).send('');
+
+        const txt = contacts.map(c => c.phone).join('\n');
+
+        // Hapus semua pending setelah export
+        await mysql.query(`DELETE FROM contacts WHERE status = 'pending'`);
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="pending_${new Date().toISOString().slice(0, 10)}.txt"`);
+        res.send(txt);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+module.exports = { addContact, getContacts, bulkImport, deleteMultiple, deleteAll, deleteOne, clearSent, exportThenDeletePending };
