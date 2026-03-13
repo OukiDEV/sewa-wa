@@ -3,7 +3,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth.middlewa
 const {
     getUsersOnline, getAllUsers, getUsersBalance,
     updateUserRate, toggleBan, resetBalance,
-    getAllSessions, getSettings, updateSettings
+    getAllSessions, getSettings, updateSettings, getMessageStats
 } = require('../controllers/admin.controller');
 const {
     getAllWithdrawals, approveWithdrawal, rejectWithdrawal, getWithdrawalStats
@@ -25,6 +25,9 @@ router.get('/all-sessions',            ...guard, getAllSessions);
 // Settings
 router.get('/settings',                ...guard, getSettings);
 router.post('/settings',               ...guard, updateSettings);
+
+// Message stats (dari DB — persistent walau disconnect)
+router.get('/message-stats',           ...guard, getMessageStats);
 
 // Withdrawals
 router.get('/withdrawals',             ...guard, getAllWithdrawals);
