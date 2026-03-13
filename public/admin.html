@@ -1741,10 +1741,33 @@
             if (!raw) return Swal.fire('Error', 'Data kosong!', 'error');
             const contacts = raw.split('\n').map(l => { const [n, p] = l.split(','); return { name: n?.trim(), phone: p?.trim() }; }).filter(c => c.name && c.phone);
             if (!contacts.length) return Swal.fire('Error', 'Format salah. Gunakan: Nama,Nomor', 'error');
-            Swal.fire({ title: `Mengimpor ${contacts.length} kontak...`, didOpen: () => Swal.showLoading() });
-            const r = await fetch('/api/contacts/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ contacts }) });
-            if (r.ok) { document.getElementById('bulkText').value = ''; Swal.fire('Berhasil!', `${contacts.length} kontak diimport.`, 'success'); loadContacts('pending'); }
-            else Swal.fire('Gagal', 'Terjadi kesalahan.', 'error');
+
+            // Kirim per batch 2000 biar tidak kena PayloadTooLarge
+            const BATCH = 2000;
+            const totalBatches = Math.ceil(contacts.length / BATCH);
+            let totalInserted = 0;
+
+            Swal.fire({ title: `Mengimpor ${contacts.length} kontak...`, html: `<span id="importProgress">Batch 0 / ${totalBatches}</span>`, didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+
+            for (let i = 0; i < contacts.length; i += BATCH) {
+                const batch = contacts.slice(i, i + BATCH);
+                const batchNum = Math.floor(i / BATCH) + 1;
+                const progEl = document.getElementById('importProgress');
+                if (progEl) progEl.innerText = `Batch ${batchNum} / ${totalBatches} (${totalInserted + batch.length} kontak)`;
+                try {
+                    const r = await fetch('/api/contacts/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ contacts: batch })
+                    });
+                    if (!r.ok) { Swal.fire('Gagal', `Error pada batch ${batchNum}: ${r.status}`, 'error'); return; }
+                    totalInserted += batch.length;
+                } catch (e) { Swal.fire('Gagal', `Koneksi error: ${e.message}`, 'error'); return; }
+            }
+
+            document.getElementById('bulkText').value = '';
+            Swal.fire('Berhasil!', `${totalInserted} kontak berhasil diimport dalam ${totalBatches} batch.`, 'success');
+            loadContacts('pending');
         }
         async function clearAllPending() {
             const { isConfirmed } = await Swal.fire({ title: 'Hapus semua pending?', text: 'Kontak yang sudah di-blast tetap aman.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus Semua!' });
