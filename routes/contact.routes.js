@@ -5,11 +5,14 @@ const {
     deleteMultiple, deleteAll, deleteOne
 } = require('../controllers/contact.controller');
 
-router.get('/',                   authenticateToken, getContacts);
-router.post('/',                  authenticateToken, addContact);
-router.post('/bulk',              authenticateToken, bulkImport);
-router.post('/delete-multiple',   authenticateToken, deleteMultiple);
-router.delete('/all',             authenticateToken, deleteAll);   // mapped as /api/contacts-all in original → adjusted here
-router.delete('/:id',             authenticateToken, deleteOne);
+router.get('/', authenticateToken, getContacts);
+router.post('/', authenticateToken, addContact);
+router.post('/bulk', authenticateToken, bulkImport);
+router.post('/delete-multiple', authenticateToken, deleteMultiple);
+
+// DELETE /api/contacts-all → mount alias di server.js, handler deleteAll dipanggil via DELETE /
+// DELETE /api/contacts/:id → deleteOne
+router.delete('/', authenticateToken, deleteAll);  // untuk alias /api/contacts-all
+router.delete('/:id', authenticateToken, deleteOne);
 
 module.exports = router;
