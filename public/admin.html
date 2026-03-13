@@ -945,6 +945,11 @@
                             id="btnSent">Terkirim</button>
                         <button class="btn btn-danger btn-sm" id="btnClearAll" onclick="clearAllPending()"><i
                                 class="fas fa-trash"></i> Hapus Semua Pending</button>
+                        <button class="btn btn-sm" style="background:#0ea5e9;color:#fff"
+                            onclick="exportThenDeletePending()"><i class="fas fa-file-export"></i> Export TXT & Hapus
+                            Pending</button>
+                        <button class="btn btn-sm" style="background:#7c3aed;color:#fff" onclick="clearAllSent()"><i
+                                class="fas fa-trash"></i> Hapus Semua Terkirim</button>
                     </div>
                 </div>
                 <!-- Add form -->
@@ -1765,6 +1770,37 @@
             await fetch('/api/contacts-all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
             Swal.fire({ icon: 'success', title: 'Bersih!', timer: 1500, showConfirmButton: false });
             loadContacts('pending');
+        }
+
+        async function exportThenDeletePending() {
+            const { isConfirmed } = await Swal.fire({ title: 'Export & Hapus Pending?', text: 'Semua kontak pending akan diexport ke TXT lalu dihapus dari DB.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#0ea5e9', confirmButtonText: 'Export & Hapus!' });
+            if (!isConfirmed) return;
+            try {
+                const r = await fetch('/api/contacts/export-pending', { headers: { Authorization: `Bearer ${token}` } });
+                if (r.status === 200) {
+                    const blob = await r.blob();
+                    if (blob.size > 0) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pending_${new Date().toISOString().slice(0, 10)}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }
+                    Swal.fire({ icon: 'success', title: 'Exported & Dihapus!', timer: 1500, showConfirmButton: false });
+                    loadContacts('pending');
+                }
+            } catch (e) {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: e.message });
+            }
+        }
+
+        async function clearAllSent() {
+            const { isConfirmed } = await Swal.fire({ title: 'Hapus semua terkirim?', text: 'Data kontak yang sudah di-blast akan dihapus permanen.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#7c3aed', confirmButtonText: 'Hapus Semua Terkirim!' });
+            if (!isConfirmed) return;
+            await fetch('/api/contacts/clear-sent', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+            Swal.fire({ icon: 'success', title: 'Bersih!', timer: 1500, showConfirmButton: false });
+            loadContacts('sent');
         }
 
         // ── KEUANGAN ─────────────────────────────────
