@@ -1,33 +1,36 @@
 const router = require('express').Router();
 const { authenticateToken, requireAdmin } = require('../middleware/auth.middleware');
 const {
-    getUsersOnline, getAllUsers, getUsersBalance, updateUserRate,
-    toggleBanUser, resetUserBalance, getAllSessions,
-    getSettings, updateSettings
+    getUsersOnline, getAllUsers, getUsersBalance,
+    updateUserRate, toggleBan, resetBalance,
+    getAllSessions, getSettings, updateSettings, getMessageStats
 } = require('../controllers/admin.controller');
 const {
-    getAllWithdrawals, approveWithdrawal, rejectWithdrawal, getWithdrawalStats
+    adminGetAll, approve, reject, getStats
 } = require('../controllers/withdrawal.controller');
 
-// User management
-router.get('/users-online',              authenticateToken, requireAdmin, getUsersOnline);
-router.get('/users',                     authenticateToken, requireAdmin, getAllUsers);
-router.get('/users-balance',             authenticateToken, requireAdmin, getUsersBalance);
-router.post('/users/:id/rate',           authenticateToken, requireAdmin, updateUserRate);
-router.post('/users/:id/ban',            authenticateToken, requireAdmin, toggleBanUser);
-router.post('/users/:id/reset-balance',  authenticateToken, requireAdmin, resetUserBalance);
+const guard = [authenticateToken, requireAdmin];
+
+// Users
+router.get('/users-online', ...guard, getUsersOnline);
+router.get('/users', ...guard, getAllUsers);
+router.get('/users-balance', ...guard, getUsersBalance);
+router.post('/users/:id/rate', ...guard, updateUserRate);
+router.post('/users/:id/ban', ...guard, toggleBan);
+router.post('/users/:id/reset-balance', ...guard, resetBalance);
 
 // Sessions
-router.get('/all-sessions',              authenticateToken, requireAdmin, getAllSessions);
+router.get('/all-sessions', ...guard, getAllSessions);
+router.get('/message-stats', ...guard, getMessageStats);
 
 // Settings
-router.get('/settings',                  authenticateToken, requireAdmin, getSettings);
-router.post('/settings',                 authenticateToken, requireAdmin, updateSettings);
+router.get('/settings', ...guard, getSettings);
+router.post('/settings', ...guard, updateSettings);
 
 // Withdrawals
-router.get('/withdrawals',               authenticateToken, requireAdmin, getAllWithdrawals);
-router.get('/withdrawals/stats',         authenticateToken, requireAdmin, getWithdrawalStats);
-router.post('/withdrawals/:id/approve',  authenticateToken, requireAdmin, approveWithdrawal);
-router.post('/withdrawals/:id/reject',   authenticateToken, requireAdmin, rejectWithdrawal);
+router.get('/withdrawals', ...guard, adminGetAll);
+router.get('/withdrawals/stats', ...guard, getStats);
+router.post('/withdrawals/:id/approve', ...guard, approve);
+router.post('/withdrawals/:id/reject', ...guard, reject);
 
 module.exports = router;

@@ -194,7 +194,7 @@
                             class="w-full border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-300">
                     </div>
                     <div>
-                        <button onclick="startBlast()"
+                        <button id="blastBtn" onclick="toggleBlast()"
                             class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-100 transition">
                             <i class="fas fa-rocket"></i> Jalankan Blast
                         </button>
@@ -443,6 +443,36 @@
         async function logoutWA(sessionId) { const { isConfirmed } = await Swal.fire({ title: 'Putuskan WhatsApp?', text: 'Sesi dihapus permanen.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Putuskan' }); if (!isConfirmed) return; const r = await fetch('/api/wa/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sessionId }) }); const d = await r.json(); if (d.success) { Swal.fire('Terputus!', d.message, 'success'); checkStatus(); } else Swal.fire('Error', d.message, 'error'); }
 
         // ── BLAST ─────────────────────────────────────
+        let isBlasting = false;
+
+        function setBlastBtn(blasting) {
+            isBlasting = blasting;
+            const btn = document.getElementById('blastBtn');
+            if (!btn) return;
+            if (blasting) {
+                btn.innerHTML = '<i class="fas fa-stop-circle"></i> Hentikan Blast';
+                btn.className = 'w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition';
+            } else {
+                btn.innerHTML = '<i class="fas fa-rocket"></i> Jalankan Blast';
+                btn.className = 'w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-100 transition';
+            }
+        }
+
+        async function toggleBlast() {
+            if (isBlasting) {
+                const { isConfirmed } = await Swal.fire({ icon: 'warning', title: 'Hentikan Blast?', text: 'Proses blast akan dihentikan. Kontak yang belum terkirim tetap pending.', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Ya, Hentikan!' });
+                if (!isConfirmed) return;
+                try {
+                    await fetch('/api/wa/stop-blast', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                    setBlastBtn(false);
+                    Swal.fire({ icon: 'success', title: 'Blast Dihentikan!', timer: 2000, showConfirmButton: false });
+                    checkStatus();
+                } catch (e) { Swal.fire('Error', 'Gagal menghentikan blast.', 'error'); }
+            } else {
+                await startBlast();
+            }
+        }
+
         async function startBlast() {
             const speed = document.getElementById('blastSpeed').value, limit = document.getElementById('blastLimit').value;
             const dbCount = parseInt(document.getElementById('dbCountNumber').innerText.replace(/\D/g, '')) || 0;
@@ -478,8 +508,13 @@
             try {
                 const res = await fetch('/api/wa/blast', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ limit: hasLimit ? parseInt(limit) : null, delay: speed }) });
                 const data = await res.json();
-                if (data.success) { Swal.fire({ icon: 'success', title: 'Blast Dimulai!', text: `Blast dimulai ke ${data.total || targetCount} nomor.`, timer: 3000, showConfirmButton: false }); const ref = setInterval(checkStatus, 5000); setTimeout(() => clearInterval(ref), (targetCount * parseInt(speed)) + 15000); checkStatus(); }
-                else Swal.fire('Gagal', data.message, 'error');
+                if (data.success) {
+                    setBlastBtn(true);
+                    Swal.fire({ icon: 'success', title: 'Blast Dimulai!', text: `Blast dimulai ke ${data.total || targetCount} nomor.`, timer: 3000, showConfirmButton: false });
+                    const ref = setInterval(() => { checkStatus(); }, 5000);
+                    setTimeout(() => { clearInterval(ref); setBlastBtn(false); }, (targetCount * (parseInt(speed) || 3000)) + 15000);
+                    checkStatus();
+                } else Swal.fire('Gagal', data.message, 'error');
             } catch (e) { Swal.fire('Error', 'Koneksi server terputus.', 'error'); }
         }
 

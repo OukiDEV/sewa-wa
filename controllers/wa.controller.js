@@ -123,6 +123,7 @@ const blast = async (req, res) => {
 
         res.json({ success: true, message: `Blast dimulai ke ${targetCount} nomor dengan template "${template.title}".`, total: targetCount });
         if (!sessionStats[sessionId]) sessionStats[sessionId] = { sent: 0, failed: 0 };
+        sessionStats[sessionId].blasting = true;
         console.log(`[Blast] Target: ${targetCount} (limit: ${blastLimit || 'sampai disconnect'})`);
 
         // Ambil kontak per batch 100 — hemat RAM, tidak load 300k sekaligus
@@ -152,6 +153,7 @@ const blast = async (req, res) => {
             for (const contact of batch) {
                 if (blastLimit && sentCount >= blastLimit) { running = false; break; }
                 if (!sessions[sessionId]?._ready) { running = false; break; }
+                if (global.blastStop?.[userId]) { console.log('[Blast] Dihentikan oleh user.'); global.blastStop[userId] = false; running = false; break; }
                 try {
                     let target = contact.phone.replace(/\D/g, '');
                     if (target.startsWith('0')) target = '62' + target.slice(1);
@@ -181,6 +183,8 @@ const blast = async (req, res) => {
             }
         }
         console.log(`[Done] Sent: ${sentCount}, Failed: ${sessionStats[sessionId].failed}`);
+        if (sessionStats[sessionId]) sessionStats[sessionId].blasting = false;
+        if (global.blastStop) global.blastStop[userId] = false;
     } catch (err) {
         console.error('Blast Error:', err);
     }
@@ -203,4 +207,12 @@ const getPairingCode = async (req, res) => {
     }
 };
 
-module.exports = { connect, getStatus, logout, blast, getPairingCode };
+const stopBlast = async (req, res) => {
+    const userId = req.user.id;
+    // Set flag stop per user
+    if (!global.blastStop) global.blastStop = {};
+    global.blastStop[userId] = true;
+    res.json({ success: true, message: 'Blast dihentikan.' });
+};
+
+module.exports = { connect, getStatus, logout, blast, getPairingCode, stopBlast };

@@ -1,4 +1,5 @@
 const mysql = require('../db');
+const { sessions, sessionStats } = require('../services/whatsapp.service');
 
 const getUsersOnline = async (req, res) => {
     try {
@@ -53,7 +54,7 @@ const updateUserRate = async (req, res) => {
     }
 };
 
-const toggleBanUser = async (req, res) => {
+const toggleBan = async (req, res) => {
     try {
         await mysql.query(`UPDATE users SET banned = NOT banned WHERE id = ?`, [req.params.id]);
         res.json({ success: true });
@@ -62,7 +63,7 @@ const toggleBanUser = async (req, res) => {
     }
 };
 
-const resetUserBalance = async (req, res) => {
+const resetBalance = async (req, res) => {
     try {
         await mysql.query(`UPDATE users SET balance = 0 WHERE id = ?`, [req.params.id]);
         res.json({ success: true });
@@ -73,30 +74,33 @@ const resetUserBalance = async (req, res) => {
 
 const getAllSessions = async (req, res) => {
     try {
-        const { sessionStats, sessions } = require('../services/whatsapp.service');
-        const { activeBlasts } = require('./wa.controller');
-
         const [rows] = await mysql.query(`
-            SELECT ws.*, u.username,
-                (SELECT COUNT(*) FROM contacts c WHERE c.user_id = ws.user_id AND c.status = 'sent') as total_sent_db,
-                (SELECT COUNT(*) FROM contacts c WHERE c.status = 'pending') as total_pending_db,
-                (SELECT COUNT(*) FROM contacts c WHERE c.user_id = ws.user_id AND c.status = 'failed') as total_failed_db
+            SELECT ws.*, u.username
             FROM wa_sessions ws
             JOIN users u ON ws.user_id = u.id
             ORDER BY ws.status DESC, ws.id DESC
         `);
 
-        const enriched = rows.map(s => ({
-            ...s,
-            // Real-time stats dari memory (lebih akurat saat blast berlangsung)
-            realtime_sent: sessionStats[s.session_id]?.sent ?? Number(s.sent_count) ?? 0,
-            realtime_failed: sessionStats[s.session_id]?.failed ?? 0,
-            realtime_pending: s.total_pending_db,
-            is_blasting: activeBlasts.has(s.session_id),
-            is_online: !!sessions[s.session_id]?._ready
-        }));
+        // Hitung total pending dari DB sekali saja
+        const [[{ totalPending }]] = await mysql.query(
+            `SELECT COUNT(*) as totalPending FROM contacts WHERE status = 'pending'`
+        );
 
-        res.json(enriched);
+        // Merge dengan in-memory sessionStats (realtime data saat blast)
+        const merged = rows.map(s => {
+            const stats = sessionStats[s.session_id] || {};
+            const isConnected = sessions[s.session_id]?._ready === true;
+            return {
+                ...s,
+                status: isConnected ? 'connected' : s.status,
+                realtime_sent: stats.sent || s.sent_count || 0,
+                realtime_pending: totalPending,
+                realtime_failed: stats.failed || 0,
+                is_blasting: !!(stats.blasting === true)
+            };
+        });
+
+        res.json(merged);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -131,7 +135,28 @@ const updateSettings = async (req, res) => {
     }
 };
 
+const getMessageStats = async (req, res) => {
+    try {
+        const [[today]] = await mysql.query(
+            `SELECT COUNT(*) as cnt FROM contacts WHERE status = 'sent' AND DATE(sent_at) = CURDATE()`
+        );
+        const [[week]] = await mysql.query(
+            `SELECT COUNT(*) as cnt FROM contacts WHERE status = 'sent' AND sent_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`
+        );
+        const [[month]] = await mysql.query(
+            `SELECT COUNT(*) as cnt FROM contacts WHERE status = 'sent' AND sent_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
+        );
+        const [[total]] = await mysql.query(`SELECT COUNT(*) as cnt FROM contacts WHERE status IN ('sent','failed')`);
+        const [[failed]] = await mysql.query(`SELECT COUNT(*) as cnt FROM contacts WHERE status = 'failed'`);
+        const successRate = total.cnt > 0 ? Math.round(((total.cnt - failed.cnt) / total.cnt) * 100) : 0;
+        res.json({ today: today.cnt, week: week.cnt, month: month.cnt, successRate });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 module.exports = {
-    getUsersOnline, getAllUsers, getUsersBalance, updateUserRate, toggleBanUser,
-    resetUserBalance, getAllSessions, getSettings, updateSettings
+    getUsersOnline, getAllUsers, getUsersBalance,
+    updateUserRate, toggleBan, resetBalance,
+    getAllSessions, getSettings, updateSettings, getMessageStats
 };

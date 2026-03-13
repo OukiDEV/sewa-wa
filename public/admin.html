@@ -938,18 +938,13 @@
                         <p class="page-sub">Kelola kontak blast. Kontak yang sudah di-blast <strong>terkunci</strong>.
                         </p>
                     </div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <div style="display:flex;gap:8px">
                         <button class="btn" style="background:#f1f5f9;color:#64748b" onclick="loadContacts('pending')"
                             id="btnPending">Pending</button>
                         <button class="btn" style="background:#f1f5f9;color:#64748b" onclick="loadContacts('sent')"
                             id="btnSent">Terkirim</button>
-                        <button class="btn btn-sm" style="background:#f59e0b;color:#fff"
-                            onclick="exportThenDeletePending()"><i class="fas fa-file-export"></i> Export &amp; Hapus
-                            Pending</button>
                         <button class="btn btn-danger btn-sm" id="btnClearAll" onclick="clearAllPending()"><i
                                 class="fas fa-trash"></i> Hapus Semua Pending</button>
-                        <button class="btn btn-danger btn-sm" onclick="clearAllSent()"><i class="fas fa-trash"></i>
-                            Hapus Semua Terkirim</button>
                     </div>
                 </div>
                 <!-- Add form -->
@@ -1358,15 +1353,28 @@
                 document.getElementById('r_deviceBar').style.width = pct + '%';
                 document.getElementById('r_devicePct').innerText = pct + '% terhubung';
 
-                // Pesan stats
+                // Pesan stats — dari DB, bukan memory (tetap ada walau restart)
                 const totalSent = ws.totalSent || 0;
                 document.getElementById('r_msgToday').innerText = totalSent;
-                document.getElementById('r_today').innerText = totalSent;
-                document.getElementById('r_week').innerText = totalSent;
-                document.getElementById('r_month').innerText = totalSent;
-                const sr = totalSent > 0 ? 85 : 0;
-                document.getElementById('r_successRate').innerText = sr + '%';
-                document.getElementById('r_successBar').style.width = sr + '%';
+
+                // Lalu lintas dari DB
+                const statsRes = await fetch('/api/admin/message-stats', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+                if (statsRes && statsRes.ok) {
+                    const stats = await statsRes.json();
+                    document.getElementById('r_today').innerText = (stats.today || 0).toLocaleString('id-ID');
+                    document.getElementById('r_week').innerText = (stats.week || 0).toLocaleString('id-ID');
+                    document.getElementById('r_month').innerText = (stats.month || 0).toLocaleString('id-ID');
+                    const sr = stats.successRate || 0;
+                    document.getElementById('r_successRate').innerText = sr + '%';
+                    document.getElementById('r_successBar').style.width = sr + '%';
+                } else {
+                    document.getElementById('r_today').innerText = totalSent;
+                    document.getElementById('r_week').innerText = totalSent;
+                    document.getElementById('r_month').innerText = totalSent;
+                    const sr = totalSent > 0 ? 85 : 0;
+                    document.getElementById('r_successRate').innerText = sr + '%';
+                    document.getElementById('r_successBar').style.width = sr + '%';
+                }
 
                 // Balance total dari semua user
                 if (balRes && balRes.ok) {
@@ -1756,54 +1764,6 @@
             if (!isConfirmed) return;
             await fetch('/api/contacts-all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
             Swal.fire({ icon: 'success', title: 'Bersih!', timer: 1500, showConfirmButton: false });
-            loadContacts('pending');
-        }
-
-        async function clearAllSent() {
-            const { isConfirmed } = await Swal.fire({
-                title: 'Hapus semua terkirim?',
-                text: 'Data kontak yang sudah di-blast akan dihapus permanen.',
-                icon: 'warning', showCancelButton: true,
-                confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus!'
-            });
-            if (!isConfirmed) return;
-            Swal.fire({ title: 'Menghapus...', didOpen: () => Swal.showLoading() });
-            const r = await fetch('/api/contacts/clear-sent', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-            const d = await r.json();
-            Swal.fire({ icon: 'success', title: `${d.deleted || 0} kontak terkirim dihapus!`, timer: 2000, showConfirmButton: false });
-            loadContacts('sent');
-        }
-
-        async function exportThenDeletePending() {
-            const { isConfirmed } = await Swal.fire({
-                title: 'Export & Hapus Pending?',
-                html: 'Semua kontak <b>pending</b> akan di-download sebagai TXT, lalu dihapus dari database.',
-                icon: 'warning', showCancelButton: true,
-                confirmButtonColor: '#f59e0b', confirmButtonText: '📥 Export & Hapus!'
-            });
-            if (!isConfirmed) return;
-            Swal.fire({ title: 'Mengexport...', didOpen: () => Swal.showLoading() });
-
-            // 1 request ke backend — query + delete + return file sekaligus
-            const r = await fetch('/api/contacts/export-pending', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (!r.ok) { Swal.fire('Gagal', 'Terjadi error saat export', 'error'); return; }
-
-            const txt = await r.text();
-            if (!txt.trim()) { Swal.fire('Info', 'Tidak ada kontak pending.', 'info'); return; }
-
-            const count = txt.trim().split('\n').length;
-            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `pending_${new Date().toISOString().slice(0, 10)}.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
-
-            Swal.fire({ icon: 'success', title: `${count} kontak di-export & dihapus!`, timer: 2500, showConfirmButton: false });
             loadContacts('pending');
         }
 
