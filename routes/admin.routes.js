@@ -6,7 +6,7 @@ const {
     getAllSessions, getSettings, updateSettings
 } = require('../controllers/admin.controller');
 const {
-    adminGetAll, approve, reject, getStats
+    getAllWithdrawals, approveWithdrawal, rejectWithdrawal, getWithdrawalStats
 } = require('../controllers/withdrawal.controller');
 
 const guard = [authenticateToken, requireAdmin];
@@ -27,9 +27,9 @@ router.get('/settings',                ...guard, getSettings);
 router.post('/settings',               ...guard, updateSettings);
 
 // Withdrawals
-router.get('/withdrawals',             ...guard, adminGetAll);
-router.get('/withdrawals/stats',       ...guard, getStats);
-router.post('/withdrawals/:id/approve',...guard, approve);
-router.post('/withdrawals/:id/reject', ...guard, reject);
+router.get('/withdrawals',             ...guard, getAllWithdrawals);
+router.get('/withdrawals/stats',       ...guard, getWithdrawalStats);
+router.post('/withdrawals/:id/approve',...guard, approveWithdrawal);
+router.post('/withdrawals/:id/reject', ...guard, rejectWithdrawal);
 
 module.exports = router;
