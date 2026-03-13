@@ -24,6 +24,7 @@ app.use('/api/contacts-all', require('./routes/contact.routes')); // alias DELET
 app.use('/api/templates', require('./routes/template.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/withdrawal', require('./routes/withdrawal.routes'));
+app.use('/api/settings', require('./routes/settings.routes'));  // public settings untuk user
 app.use('/api/admin', require('./routes/admin.routes'));
 
 // ── Boot ──────────────────────────────────────────
