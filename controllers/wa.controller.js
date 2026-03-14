@@ -29,7 +29,7 @@ const getStatus = async (req, res) => {
         const [pendingRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'pending'`);
         const [sentContactRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'sent'`);
         const [sessionRows] = await mysql.query(
-            `SELECT session_id, phone_number, status, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE user_id = ?`,
+            `SELECT session_id, phone_number, status, is_blasting, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE user_id = ?`,
             [userId]
         );
 
@@ -44,7 +44,7 @@ const getStatus = async (req, res) => {
         const sessionsWithStats = sessionRows.map(s => ({
             ...s,
             sent_count: sessionStats[s.session_id]?.sent ?? Number(s.sent_count) ?? 0,
-            blasting: sessionStats[s.session_id]?.blasting || false,
+            blasting: sessionStats[s.session_id]?.blasting || s.is_blasting === 1 || false,
             pendingCount: sessionPendingMap[s.session_id] || 0
         }));
         const totalSent = sessionsWithStats.reduce((sum, s) => sum + (s.sent_count || 0), 0);
@@ -128,7 +128,9 @@ const blast = async (req, res) => {
         const sock = sessions[sessionId];
         if (!sock) return res.status(400).json({ success: false, message: 'Sesi WA tidak aktif. Restart server.' });
 
-        if (sessionStats[sessionId]?.blasting)
+        // Cek blasting dari memory ATAU dari DB
+        const [[sessionBlastRow]] = await mysql.query(`SELECT is_blasting FROM wa_sessions WHERE session_id = ?`, [sessionId]);
+        if (sessionStats[sessionId]?.blasting || sessionBlastRow?.is_blasting === 1)
             return res.status(400).json({ success: false, message: 'Session ini sedang blast!' });
 
         if (!sock._ready) {
@@ -162,6 +164,7 @@ const blast = async (req, res) => {
 
         if (!sessionStats[sessionId]) sessionStats[sessionId] = { sent: 0, failed: 0 };
         sessionStats[sessionId].blasting = true;
+        await mysql.query(`UPDATE wa_sessions SET is_blasting = 1 WHERE session_id = ?`, [sessionId]);
         console.log(`[Blast] Session: ${sessionId}, Target: ${lockedCount}`);
 
         // Parse mode: paralel atau sequential
@@ -254,6 +257,7 @@ const blast = async (req, res) => {
 
         console.log(`[Done] Session: ${sessionId}, Sent: ${sentCount}, Failed: ${sessionStats[sessionId].failed}`);
         if (sessionStats[sessionId]) sessionStats[sessionId].blasting = false;
+        await mysql.query(`UPDATE wa_sessions SET is_blasting = 0 WHERE session_id = ?`, [sessionId]);
     } catch (err) {
         console.error('Blast Error:', err);
         if (req.body.sessionId || true) {
@@ -284,14 +288,16 @@ const stopBlast = async (req, res) => {
     if (!global.blastStop) global.blastStop = {};
 
     if (sessionId) {
-        // Stop blast untuk session spesifik
         global.blastStop[sessionId] = true;
+        await mysql.query(`UPDATE wa_sessions SET is_blasting = 0 WHERE session_id = ?`, [sessionId]);
     } else {
-        // Stop semua session milik user ini
         const [userSessions] = await mysql.query(
             `SELECT session_id FROM wa_sessions WHERE user_id = ?`, [userId]
         );
-        for (const s of userSessions) global.blastStop[s.session_id] = true;
+        for (const s of userSessions) {
+            global.blastStop[s.session_id] = true;
+            await mysql.query(`UPDATE wa_sessions SET is_blasting = 0 WHERE session_id = ?`, [s.session_id]);
+        }
     }
     res.json({ success: true, message: 'Blast dihentikan.' });
 };

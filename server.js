@@ -40,6 +40,11 @@ mysql.query(`UPDATE contacts SET locked_by = NULL WHERE status = 'pending' AND l
     .then(() => console.log('[DB] Lock contacts direset'))
     .catch(console.error);
 
+// Reset is_blasting saat server start
+mysql.query(`UPDATE wa_sessions SET is_blasting = 0`)
+    .then(() => console.log('[DB] Blast status direset'))
+    .catch(console.error);
+
 restoreSessions();
 
 // Auto flush PM2 logs setiap 2000 baris log
