@@ -24,7 +24,7 @@ const connect = async (req, res) => {
 const getStatus = async (req, res) => {
     try {
         const userId = req.user.id;
-        const [pendingRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'pending'`);
+        const [pendingRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'pending' AND (locked_by IS NULL OR locked_by = '')`);
         const [sentContactRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'sent'`);
         const [sessionRows] = await mysql.query(
             `SELECT session_id, phone_number, status, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE user_id = ?`,
@@ -33,7 +33,8 @@ const getStatus = async (req, res) => {
         const connectedCount = sessionRows.filter(s => s.status === 'connected').length;
         const sessionsWithStats = sessionRows.map(s => ({
             ...s,
-            sent_count: sessionStats[s.session_id]?.sent ?? Number(s.sent_count) ?? 0
+            sent_count: sessionStats[s.session_id]?.sent ?? Number(s.sent_count) ?? 0,
+            blasting: sessionStats[s.session_id]?.blasting || false
         }));
         const totalSent = sessionsWithStats.reduce((sum, s) => sum + (s.sent_count || 0), 0);
         const [userRows] = await mysql.query(`SELECT balance FROM users WHERE id = ?`, [userId]);
@@ -55,6 +56,9 @@ const logout = async (req, res) => {
     const { sessionId } = req.body;
     const sessionDir = `./sessions/${sessionId}`;
     try {
+        // Release any locked contacts for this session
+        await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE locked_by = ? AND status = 'pending'`, [sessionId]);
+
         if (sessions[sessionId]) {
             try { await sessions[sessionId].logout(); sessions[sessionId].end(); } catch (e) { }
             delete sessions[sessionId];
@@ -69,7 +73,7 @@ const logout = async (req, res) => {
 };
 
 const blast = async (req, res) => {
-    const { templateId, limit, delay } = req.body;
+    const { templateId, limit, delay, sessionId: reqSessionId } = req.body;
     const userId = req.user.id;
     try {
         const PRICE_PER_MSG = parseInt(await getSetting('price_per_msg', '800')) || 800;
@@ -90,19 +94,33 @@ const blast = async (req, res) => {
             template = tplRows[0];
         }
 
-        const [activeSessions] = await mysql.query(
-            `SELECT session_id FROM wa_sessions WHERE user_id = ? AND status = 'connected' LIMIT 1`,
-            [userId]
-        );
-        if (activeSessions.length === 0)
-            return res.status(400).json({ success: false, message: 'Hubungkan WhatsApp dulu!' });
+        // Gunakan sessionId dari request (per device), atau fallback ke session pertama
+        let sessionId = reqSessionId;
+        if (!sessionId) {
+            const [activeSessions] = await mysql.query(
+                `SELECT session_id FROM wa_sessions WHERE user_id = ? AND status = 'connected' LIMIT 1`,
+                [userId]
+            );
+            if (activeSessions.length === 0)
+                return res.status(400).json({ success: false, message: 'Hubungkan WhatsApp dulu!' });
+            sessionId = activeSessions[0].session_id;
+        }
 
-        const sessionId = activeSessions[0].session_id;
+        // Validasi session milik user ini
+        const [sessionCheck] = await mysql.query(
+            `SELECT session_id FROM wa_sessions WHERE session_id = ? AND user_id = ?`,
+            [sessionId, userId]
+        );
+        if (sessionCheck.length === 0)
+            return res.status(403).json({ success: false, message: 'Session tidak valid.' });
+
         const sock = sessions[sessionId];
         if (!sock) return res.status(400).json({ success: false, message: 'Sesi WA tidak aktif. Restart server.' });
 
+        if (sessionStats[sessionId]?.blasting)
+            return res.status(400).json({ success: false, message: 'Session ini sedang blast!' });
+
         if (!sock._ready) {
-            console.log('[Blast] Menunggu koneksi WA ready...');
             for (let i = 0; i < 15; i++) {
                 await new Promise(r => setTimeout(r, 1000));
                 if (sessions[sessionId]?._ready) break;
@@ -111,49 +129,56 @@ const blast = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'WA belum terhubung sepenuhnya. Coba lagi.' });
         }
 
-        // Hitung total pending dulu (tanpa load semua ke RAM)
-        const [[{ totalPending }]] = await mysql.query(
-            `SELECT COUNT(*) as totalPending FROM contacts WHERE status = 'pending'`
-        );
-        if (totalPending === 0)
-            return res.status(400).json({ success: false, message: 'Tidak ada kontak pending!' });
-
         const blastLimit = (limit && !isNaN(limit) && parseInt(limit) > 0) ? parseInt(limit) : null;
-        const targetCount = blastLimit ? Math.min(blastLimit, totalPending) : totalPending;
 
-        res.json({ success: true, message: `Blast dimulai ke ${targetCount} nomor dengan template "${template.title}".`, total: targetCount });
+        // LOCK kontak untuk session ini — ambil pending yang belum dikunci siapapun
+        const lockCount = blastLimit || 999999;
+        await mysql.query(
+            `UPDATE contacts SET locked_by = ? WHERE status = 'pending' AND (locked_by IS NULL OR locked_by = '') ORDER BY id ASC LIMIT ?`,
+            [sessionId, lockCount]
+        );
+
+        // Hitung berapa yang berhasil dikunci
+        const [[{ lockedCount }]] = await mysql.query(
+            `SELECT COUNT(*) as lockedCount FROM contacts WHERE locked_by = ? AND status = 'pending'`,
+            [sessionId]
+        );
+
+        if (lockedCount === 0)
+            return res.status(400).json({ success: false, message: 'Tidak ada kontak pending yang tersedia!' });
+
+        res.json({ success: true, message: `Blast dimulai ke ${lockedCount} nomor dengan template "${template.title}".`, total: lockedCount });
+
         if (!sessionStats[sessionId]) sessionStats[sessionId] = { sent: 0, failed: 0 };
         sessionStats[sessionId].blasting = true;
-        console.log(`[Blast] Target: ${targetCount} (limit: ${blastLimit || 'sampai disconnect'})`);
+        console.log(`[Blast] Session: ${sessionId}, Target: ${lockedCount}`);
 
-        // Ambil kontak per batch 100 — hemat RAM, tidak load 300k sekaligus
         const BATCH_SIZE = 100;
         let sentCount = 0;
         let lastId = 0;
         let running = true;
 
         while (running) {
-            if (blastLimit && sentCount >= blastLimit) {
-                console.log(`[Blast] Limit ${blastLimit} tercapai, berhenti.`);
+            if (!sessions[sessionId]?._ready) {
+                console.log(`[Blast] WA disconnect, blast dihentikan.`);
                 break;
             }
-            if (!sessions[sessionId]?._ready) {
-                console.log(`[Blast] WA disconnect saat iterasi ke-${sentCount + 1}, blast dihentikan.`);
+            if (global.blastStop?.[sessionId]) {
+                console.log('[Blast] Dihentikan oleh user.');
+                global.blastStop[sessionId] = false;
                 break;
             }
 
-            // Ambil batch berikutnya menggunakan cursor (id > lastId)
-            const fetchLimit = blastLimit ? Math.min(BATCH_SIZE, blastLimit - sentCount) : BATCH_SIZE;
+            // Ambil batch kontak yang dikunci untuk session ini
             const [batch] = await mysql.query(
-                `SELECT id, phone, name FROM contacts WHERE status = 'pending' AND id > ? ORDER BY id ASC LIMIT ?`,
-                [lastId, fetchLimit]
+                `SELECT id, phone, name FROM contacts WHERE locked_by = ? AND status = 'pending' AND id > ? ORDER BY id ASC LIMIT ?`,
+                [sessionId, lastId, BATCH_SIZE]
             );
-            if (batch.length === 0) break; // semua sudah terkirim
+            if (batch.length === 0) break;
 
             for (const contact of batch) {
-                if (blastLimit && sentCount >= blastLimit) { running = false; break; }
                 if (!sessions[sessionId]?._ready) { running = false; break; }
-                if (global.blastStop?.[userId]) { console.log('[Blast] Dihentikan oleh user.'); global.blastStop[userId] = false; running = false; break; }
+                if (global.blastStop?.[sessionId]) { global.blastStop[sessionId] = false; running = false; break; }
                 try {
                     let target = contact.phone.replace(/\D/g, '');
                     if (target.startsWith('0')) target = '62' + target.slice(1);
@@ -164,7 +189,7 @@ const blast = async (req, res) => {
                         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 45000))
                     ]);
                     console.log(`[✓] → ${target} (${contact.name})`);
-                    await mysql.query(`UPDATE contacts SET status = 'sent', sent_at = NOW() WHERE id = ?`, [contact.id]);
+                    await mysql.query(`UPDATE contacts SET status = 'sent', sent_at = NOW(), locked_by = NULL WHERE id = ?`, [contact.id]);
                     sessionStats[sessionId].sent += 1;
                     sentCount += 1;
                     await mysql.query(`UPDATE wa_sessions SET sent_count = sent_count + 1 WHERE session_id = ?`, [sessionId]);
@@ -175,22 +200,32 @@ const blast = async (req, res) => {
                     const isInvalid = err.message?.includes('not-authorized') ||
                         err.message?.includes('bad jid') ||
                         err.message?.includes('not on whatsapp');
-                    if (isInvalid)
-                        await mysql.query(`UPDATE contacts SET status = 'failed' WHERE id = ?`, [contact.id]);
+                    if (isInvalid) {
+                        await mysql.query(`UPDATE contacts SET status = 'failed', locked_by = NULL WHERE id = ?`, [contact.id]);
+                    } else {
+                        // Kembalikan ke pending jika error lain (misal timeout)
+                        await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE id = ?`, [contact.id]);
+                    }
                 }
                 const d = parseInt(delay); if (d > 0) await new Promise(r => setTimeout(r, d));
-                lastId = contact.id; // cursor untuk batch berikutnya
+                lastId = contact.id;
             }
         }
-        console.log(`[Done] Sent: ${sentCount}, Failed: ${sessionStats[sessionId].failed}`);
+
+        // Release sisa kontak yang terkunci tapi belum terkirim
+        await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE locked_by = ? AND status = 'pending'`, [sessionId]);
+
+        console.log(`[Done] Session: ${sessionId}, Sent: ${sentCount}, Failed: ${sessionStats[sessionId].failed}`);
         if (sessionStats[sessionId]) sessionStats[sessionId].blasting = false;
-        if (global.blastStop) global.blastStop[userId] = false;
     } catch (err) {
         console.error('Blast Error:', err);
+        if (req.body.sessionId || true) {
+            const sid = req.body.sessionId;
+            if (sid) await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE locked_by = ? AND status = 'pending'`, [sid]);
+            if (sessionStats[sid]) sessionStats[sid].blasting = false;
+        }
     }
 };
-
-
 
 const getPairingCode = async (req, res) => {
     const { sessionId, phone } = req.body;
@@ -198,7 +233,6 @@ const getPairingCode = async (req, res) => {
     try {
         const sock = sessions[sessionId];
         if (!sock) return res.status(400).json({ success: false, message: 'Sesi tidak ditemukan, coba refresh halaman' });
-        // Baileys: requestPairingCode hanya bisa dipanggil saat belum connected
         const code = await sock.requestPairingCode(phone);
         res.json({ success: true, code });
     } catch (err) {
@@ -208,10 +242,20 @@ const getPairingCode = async (req, res) => {
 };
 
 const stopBlast = async (req, res) => {
+    const { sessionId } = req.body;
     const userId = req.user.id;
-    // Set flag stop per user
     if (!global.blastStop) global.blastStop = {};
-    global.blastStop[userId] = true;
+
+    if (sessionId) {
+        // Stop blast untuk session spesifik
+        global.blastStop[sessionId] = true;
+    } else {
+        // Stop semua session milik user ini
+        const [userSessions] = await mysql.query(
+            `SELECT session_id FROM wa_sessions WHERE user_id = ?`, [userId]
+        );
+        for (const s of userSessions) global.blastStop[s.session_id] = true;
+    }
     res.json({ success: true, message: 'Blast dihentikan.' });
 };
 
