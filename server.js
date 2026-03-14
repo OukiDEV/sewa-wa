@@ -42,5 +42,21 @@ mysql.query(`UPDATE contacts SET locked_by = NULL WHERE status = 'pending' AND l
 
 restoreSessions();
 
+// Auto flush PM2 logs setiap 2000 baris log
+const { execSync } = require('child_process');
+let logLineCount = 0;
+const origLog = console.log;
+const origError = console.error;
+function checkFlush() {
+    logLineCount++;
+    if (logLineCount >= 2000) {
+        try { execSync('pm2 flush sewa-wa'); } catch (e) { }
+        logLineCount = 0;
+        origLog('[Log] Auto flush — log direset (2000 baris)');
+    }
+}
+console.log = function (...args) { origLog(...args); checkFlush(); };
+console.error = function (...args) { origError(...args); checkFlush(); };
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`[Server] http://localhost:${PORT}`));
