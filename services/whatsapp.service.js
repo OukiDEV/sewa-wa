@@ -13,16 +13,7 @@ const mysql = require('../db');
 
 const sessions = {};
 const sessionStats = {};
-const imageCache = {}; // Cache image biar tidak baca disk tiap pesan
-
-// Debounce helper — panggil fn max 1x per `wait` ms
-function debounce(fn, wait) {
-    let timer = null;
-    return function (...args) {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => { fn.apply(this, args); timer = null; }, wait);
-    };
-}
+const imageCache = {};
 
 async function startWhatsApp(userId, sessionId) {
     const sessionDir = `./sessions/${sessionId}`;
@@ -31,15 +22,12 @@ async function startWhatsApp(userId, sessionId) {
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
-    // debounce saveCreds — max 1x per 10 detik
-    const debouncedSaveCreds = debounce(saveCreds, 10000);
-
     try {
         const { version } = await fetchLatestBaileysVersion();
         const sock = makeWASocket({
             auth: state,
             version,
-            browser: Browsers.ubuntu('Chrome'), // FIX: pakai browser standard bukan custom name
+            browser: Browsers.ubuntu('Chrome'),
             printQRInTerminal: false,
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 120000,
@@ -71,7 +59,8 @@ async function startWhatsApp(userId, sessionId) {
         sock._ready = false;
         sessions[sessionId] = sock;
 
-        sock.ev.on('creds.update', debouncedSaveCreds);
+        // Simpan credentials langsung — penting saat QR scan
+        sock.ev.on('creds.update', saveCreds);
 
         sock.ev.on('connection.update', async (update) => {
             const { connection, qr, lastDisconnect } = update;
@@ -92,7 +81,6 @@ async function startWhatsApp(userId, sessionId) {
                 const err = lastDisconnect?.error;
                 const statusCode = err?.output?.statusCode;
 
-                // FIX: handle stream error 515 (restart required) — reconnect tanpa hapus session
                 const isStreamRestart = err?.message?.includes('Stream Errored') ||
                     err?.message?.includes('restart required') ||
                     statusCode === 515;
@@ -100,19 +88,16 @@ async function startWhatsApp(userId, sessionId) {
                 const isLoggedOut = statusCode === DisconnectReason.loggedOut;
 
                 if (isLoggedOut) {
-                    // WA logout manual — hapus session
                     if (fs.existsSync(sessionDir)) fs.rmSync(sessionDir, { recursive: true, force: true });
                     await mysql.query(`DELETE FROM wa_sessions WHERE session_id = ?`, [sessionId]);
                     delete sessions[sessionId];
                     delete sessionStats[sessionId];
                     console.log(`[✗] ${sessionId}: Logged out, sesi dihapus`);
                 } else if (isStreamRestart) {
-                    // Stream error 515 — reconnect cepat tanpa hapus session
                     console.log(`[↺] ${sessionId}: Stream restart (515), reconnect dalam 3 detik...`);
                     delete sessions[sessionId];
                     setTimeout(() => startWhatsApp(userId, sessionId), 3000);
                 } else {
-                    // Error lain — reconnect normal
                     console.log(`[↺] ${sessionId}: Disconnect (${statusCode}), reconnect dalam 5 detik...`);
                     delete sessions[sessionId];
                     setTimeout(() => startWhatsApp(userId, sessionId), 5000);
@@ -121,7 +106,6 @@ async function startWhatsApp(userId, sessionId) {
         });
     } catch (err) {
         console.error('Baileys Error:', err);
-        // Retry jika startWhatsApp sendiri crash
         setTimeout(() => startWhatsApp(userId, sessionId), 5000);
     }
 }
@@ -216,7 +200,6 @@ async function sendTemplateMessage(sock, jid, template, contactName) {
         }
     }
 
-    // Fallback teks
     const fallback = btns.length
         ? `${text}\n\n${btns.map(b => `*${b.label}*\n${b.url}`).join('\n\n')}`
         : text;
