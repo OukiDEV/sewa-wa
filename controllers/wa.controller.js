@@ -24,17 +24,28 @@ const connect = async (req, res) => {
 const getStatus = async (req, res) => {
     try {
         const userId = req.user.id;
-        const [pendingRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'pending' AND (locked_by IS NULL OR locked_by = '')`);
+
+        // Total semua pending (untuk header DB Pending)
+        const [pendingRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'pending'`);
         const [sentContactRows] = await mysql.query(`SELECT COUNT(*) as total FROM contacts WHERE status = 'sent'`);
         const [sessionRows] = await mysql.query(
             `SELECT session_id, phone_number, status, COALESCE(sent_count, 0) as sent_count FROM wa_sessions WHERE user_id = ?`,
             [userId]
         );
+
+        // Pending per session (untuk card WA — kontak yang dikunci device ini)
+        const [sessionPendingRows] = await mysql.query(
+            `SELECT locked_by, COUNT(*) as total FROM contacts WHERE status = 'pending' AND locked_by IS NOT NULL AND locked_by != '' GROUP BY locked_by`
+        );
+        const sessionPendingMap = {};
+        sessionPendingRows.forEach(r => { sessionPendingMap[r.locked_by] = Number(r.total); });
+
         const connectedCount = sessionRows.filter(s => s.status === 'connected').length;
         const sessionsWithStats = sessionRows.map(s => ({
             ...s,
             sent_count: sessionStats[s.session_id]?.sent ?? Number(s.sent_count) ?? 0,
-            blasting: sessionStats[s.session_id]?.blasting || false
+            blasting: sessionStats[s.session_id]?.blasting || false,
+            pendingCount: sessionPendingMap[s.session_id] || 0
         }));
         const totalSent = sessionsWithStats.reduce((sum, s) => sum + (s.sent_count || 0), 0);
         const [userRows] = await mysql.query(`SELECT balance FROM users WHERE id = ?`, [userId]);
@@ -181,14 +192,21 @@ const blast = async (req, res) => {
                 await mysql.query(`UPDATE wa_sessions SET sent_count = sent_count + 1 WHERE session_id = ?`, [sessionId]);
                 await mysql.query(`UPDATE users SET balance = balance + ? WHERE id = ?`, [PRICE_PER_MSG, userId]);
             } catch (err) {
-                console.error(`[✗] ${contact.phone}: ${err.message}`);
-                sessionStats[sessionId].failed += 1;
+                const isRateLimit = err.message?.includes('rate-overlimit') || err.message?.includes('rate_overlimit');
                 const isInvalid = err.message?.includes('not-authorized') ||
                     err.message?.includes('bad jid') ||
                     err.message?.includes('not on whatsapp');
-                if (isInvalid) {
+                if (isRateLimit) {
+                    console.log(`[⏳] Rate limit — kontak dikembalikan ke pending, tunggu 5 detik...`);
+                    await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE id = ?`, [contact.id]);
+                    await new Promise(r => setTimeout(r, 5000));
+                } else if (isInvalid) {
+                    console.error(`[✗] ${contact.phone}: ${err.message}`);
+                    sessionStats[sessionId].failed += 1;
                     await mysql.query(`UPDATE contacts SET status = 'failed', locked_by = NULL WHERE id = ?`, [contact.id]);
                 } else {
+                    console.error(`[✗] ${contact.phone}: ${err.message}`);
+                    sessionStats[sessionId].failed += 1;
                     await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE id = ?`, [contact.id]);
                 }
             }
