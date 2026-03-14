@@ -438,6 +438,7 @@
                 data.sessions.forEach(s => {
                     const ok = s.status === 'connected';
                     const blasting = s.blasting || false;
+                    blastingDevices[s.session_id] = blasting; // sync status dari server
                     blastingDevices[s.session_id] = blasting; // sync dari server
                     const btnId = `blastBtn_${s.session_id.replace(/[^a-z0-9]/gi, '_')}`;
                     const blastBtnHtml = ok ? (blasting
