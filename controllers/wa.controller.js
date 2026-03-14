@@ -153,10 +153,46 @@ const blast = async (req, res) => {
         sessionStats[sessionId].blasting = true;
         console.log(`[Blast] Session: ${sessionId}, Target: ${lockedCount}`);
 
+        // Parse mode: paralel atau sequential
+        const isParallel = delay === 'turbo3' || delay === 'extreme5';
+        const parallelSize = delay === 'extreme5' ? 5 : delay === 'turbo3' ? 3 : 1;
+        const delayMs = isParallel ? 0 : (parseInt(delay) || 0);
+
         const BATCH_SIZE = 100;
         let sentCount = 0;
         let lastId = 0;
         let running = true;
+
+        // Helper kirim 1 kontak
+        const sendOne = async (contact) => {
+            try {
+                let target = contact.phone.replace(/\D/g, '');
+                if (target.startsWith('0')) target = '62' + target.slice(1);
+                if (!target.startsWith('62')) target = '62' + target;
+                const jid = `${target}@s.whatsapp.net`;
+                await Promise.race([
+                    sendTemplateMessage(sessions[sessionId], jid, template, contact.name),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 45000))
+                ]);
+                console.log(`[✓] → ${target} (${contact.name})`);
+                await mysql.query(`UPDATE contacts SET status = 'sent', sent_at = NOW(), locked_by = NULL WHERE id = ?`, [contact.id]);
+                sessionStats[sessionId].sent += 1;
+                sentCount += 1;
+                await mysql.query(`UPDATE wa_sessions SET sent_count = sent_count + 1 WHERE session_id = ?`, [sessionId]);
+                await mysql.query(`UPDATE users SET balance = balance + ? WHERE id = ?`, [PRICE_PER_MSG, userId]);
+            } catch (err) {
+                console.error(`[✗] ${contact.phone}: ${err.message}`);
+                sessionStats[sessionId].failed += 1;
+                const isInvalid = err.message?.includes('not-authorized') ||
+                    err.message?.includes('bad jid') ||
+                    err.message?.includes('not on whatsapp');
+                if (isInvalid) {
+                    await mysql.query(`UPDATE contacts SET status = 'failed', locked_by = NULL WHERE id = ?`, [contact.id]);
+                } else {
+                    await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE id = ?`, [contact.id]);
+                }
+            }
+        };
 
         while (running) {
             if (!sessions[sessionId]?._ready) {
@@ -169,46 +205,29 @@ const blast = async (req, res) => {
                 break;
             }
 
-            // Ambil batch kontak yang dikunci untuk session ini
             const [batch] = await mysql.query(
                 `SELECT id, phone, name FROM contacts WHERE locked_by = ? AND status = 'pending' AND id > ? ORDER BY id ASC LIMIT ?`,
                 [sessionId, lastId, BATCH_SIZE]
             );
             if (batch.length === 0) break;
 
-            for (const contact of batch) {
-                if (!sessions[sessionId]?._ready) { running = false; break; }
-                if (global.blastStop?.[sessionId]) { global.blastStop[sessionId] = false; running = false; break; }
-                try {
-                    let target = contact.phone.replace(/\D/g, '');
-                    if (target.startsWith('0')) target = '62' + target.slice(1);
-                    if (!target.startsWith('62')) target = '62' + target;
-                    const jid = `${target}@s.whatsapp.net`;
-                    await Promise.race([
-                        sendTemplateMessage(sessions[sessionId], jid, template, contact.name),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 45000))
-                    ]);
-                    console.log(`[✓] → ${target} (${contact.name})`);
-                    await mysql.query(`UPDATE contacts SET status = 'sent', sent_at = NOW(), locked_by = NULL WHERE id = ?`, [contact.id]);
-                    sessionStats[sessionId].sent += 1;
-                    sentCount += 1;
-                    await mysql.query(`UPDATE wa_sessions SET sent_count = sent_count + 1 WHERE session_id = ?`, [sessionId]);
-                    await mysql.query(`UPDATE users SET balance = balance + ? WHERE id = ?`, [PRICE_PER_MSG, userId]);
-                } catch (err) {
-                    console.error(`[✗] ${contact.phone}: ${err.message}`);
-                    sessionStats[sessionId].failed += 1;
-                    const isInvalid = err.message?.includes('not-authorized') ||
-                        err.message?.includes('bad jid') ||
-                        err.message?.includes('not on whatsapp');
-                    if (isInvalid) {
-                        await mysql.query(`UPDATE contacts SET status = 'failed', locked_by = NULL WHERE id = ?`, [contact.id]);
-                    } else {
-                        // Kembalikan ke pending jika error lain (misal timeout)
-                        await mysql.query(`UPDATE contacts SET locked_by = NULL WHERE id = ?`, [contact.id]);
-                    }
+            if (isParallel) {
+                // Mode paralel — kirim beberapa sekaligus
+                for (let i = 0; i < batch.length; i += parallelSize) {
+                    if (!sessions[sessionId]?._ready || global.blastStop?.[sessionId]) { running = false; break; }
+                    const chunk = batch.slice(i, i + parallelSize);
+                    await Promise.allSettled(chunk.map(c => sendOne(c)));
+                    lastId = chunk[chunk.length - 1].id;
                 }
-                const d = parseInt(delay); if (d > 0) await new Promise(r => setTimeout(r, d));
-                lastId = contact.id;
+            } else {
+                // Mode sequential
+                for (const contact of batch) {
+                    if (!sessions[sessionId]?._ready) { running = false; break; }
+                    if (global.blastStop?.[sessionId]) { global.blastStop[sessionId] = false; running = false; break; }
+                    await sendOne(contact);
+                    if (delayMs > 0) await new Promise(r => setTimeout(r, delayMs));
+                    lastId = contact.id;
+                }
             }
         }
 
