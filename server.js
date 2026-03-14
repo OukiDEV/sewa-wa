@@ -29,10 +29,17 @@ app.use('/api/settings', require('./routes/settings.routes'));  // public settin
 app.use('/api/admin', require('./routes/admin.routes'));
 
 // ── Boot ──────────────────────────────────────────
+const mysql = require('./db');
 const { restoreSessions } = require('./services/whatsapp.service');
 const { initSettingsTable } = require('./services/settings.service');
 
 initSettingsTable().catch(console.error);
+
+// Auto release semua lock saat server start — jaga-jaga kalau restart saat blast
+mysql.query(`UPDATE contacts SET locked_by = NULL WHERE status = 'pending' AND locked_by IS NOT NULL`)
+    .then(() => console.log('[DB] Lock contacts direset'))
+    .catch(console.error);
+
 restoreSessions();
 
 const PORT = process.env.PORT || 3000;
