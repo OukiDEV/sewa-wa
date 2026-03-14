@@ -439,7 +439,6 @@
                     const ok = s.status === 'connected';
                     const blasting = s.blasting || false;
                     blastingDevices[s.session_id] = blasting; // sync status dari server
-                    blastingDevices[s.session_id] = blasting; // sync dari server
                     const btnId = `blastBtn_${s.session_id.replace(/[^a-z0-9]/gi, '_')}`;
                     const blastBtnHtml = ok ? (blasting
                         ? `<button id="${btnId}" onclick="toggleBlastDevice('${s.session_id}')" class="w-full mt-3 bg-red-500 hover:bg-red-600 text-white py-2 rounded-xl font-bold flex items-center justify-center gap-2 text-sm transition"><i class="fas fa-stop-circle"></i> Hentikan Blast</button>`
@@ -470,6 +469,7 @@
         }
 
         async function toggleBlastDevice(sessionId) {
+            // blastingDevices di-sync dari server setiap checkStatus — reliable setelah refresh
             if (blastingDevices[sessionId] === true) {
                 const { isConfirmed } = await Swal.fire({ icon: 'warning', title: 'Hentikan Blast?', text: 'Proses blast device ini akan dihentikan.', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Ya, Hentikan!' });
                 if (!isConfirmed) return;
