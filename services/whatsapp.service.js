@@ -12,13 +12,27 @@ const mysql = require('../db');
 
 const sessions = {};
 const sessionStats = {};
+const imageCache = {}; // Cache image biar tidak baca disk tiap pesan
+
+// Debounce helper — panggil fn max 1x per `wait` ms
+function debounce(fn, wait) {
+    let timer = null;
+    return function (...args) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { fn.apply(this, args); timer = null; }, wait);
+    };
+}
 
 async function startWhatsApp(userId, sessionId) {
-    const sessionDir = `/app/sessions/${sessionId}`;
+    const sessionDir = `./sessions/${sessionId}`; // FIX: pakai path relatif
     if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
     if (!sessionStats[sessionId]) sessionStats[sessionId] = { sent: 0, failed: 0 };
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
+    // FIX: debounce saveCreds — max 1x per 10 detik, drastis kurangi disk I/O
+    const debouncedSaveCreds = debounce(saveCreds, 10000);
+
     try {
         const { version } = await fetchLatestBaileysVersion();
         const sock = makeWASocket({
@@ -54,7 +68,9 @@ async function startWhatsApp(userId, sessionId) {
 
         sock._ready = false;
         sessions[sessionId] = sock;
-        sock.ev.on('creds.update', saveCreds);
+
+        // FIX: pakai debouncedSaveCreds bukan saveCreds langsung
+        sock.ev.on('creds.update', debouncedSaveCreds);
 
         sock.ev.on('connection.update', async (update) => {
             const { connection, qr, lastDisconnect } = update;
@@ -139,9 +155,16 @@ async function sendTemplateMessage(sock, jid, template, contactName) {
     let imgSrc = null;
     if (hasImage) {
         const localPath = `./public${template.image_url.trim()}`;
-        imgSrc = (template.image_url.startsWith('/uploads/') && fs.existsSync(localPath))
-            ? fs.readFileSync(localPath)
-            : { url: template.image_url.trim() };
+        if (template.image_url.startsWith('/uploads/') && fs.existsSync(localPath)) {
+            // FIX: cache image di memory, tidak baca disk tiap pesan
+            if (!imageCache[localPath]) {
+                imageCache[localPath] = fs.readFileSync(localPath);
+                console.log(`[Cache] Image cached: ${localPath}`);
+            }
+            imgSrc = imageCache[localPath];
+        } else {
+            imgSrc = { url: template.image_url.trim() };
+        }
     }
 
     let btns = [];
